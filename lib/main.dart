@@ -30,7 +30,9 @@ class _FlutterUiState extends State<FlutterUi> {
       title: 'FUI',
       darkTheme: themeProvider.darkTheme,
       theme: themeProvider.theme,
-      home: WindowContainer(),
+      home: Scaffold(
+        body: WindowContainer(),
+      ),
     );
   }
 }

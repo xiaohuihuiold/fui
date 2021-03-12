@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../storage/local_storage.dart';
 
+/// 主题状态
 class ThemeProvider extends ChangeNotifier {
   ThemeData? get darkTheme => isDark == null ? ThemeData.dark() : null;
 

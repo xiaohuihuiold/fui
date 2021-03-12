@@ -1,9 +1,9 @@
-import 'dart:html';
-
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-import 'decorated_window.dart';
+import 'window/decorated_window.dart';
+import 'window/desktop_window.dart';
 
 part 'window_configuration.dart';
 
@@ -60,20 +60,58 @@ class WindowContainerState extends State<WindowContainer>
   List<Widget> _extractChildren() {
     return [
       for (WindowConfiguration window in _windows)
-        WindowConfigureData(
-          key: window._key,
-          data: window,
-          child: DecoratedWindow(
-            window: window,
+        // 最小化不显示
+        if (window.sizeMode != WindowSizeMode.min)
+          WindowConfigureData(
+            key: window._key,
+            data: window,
+            child: DecoratedWindow(
+              window: window,
+            ),
           ),
-        ),
     ];
+  }
+
+  /// 创建桌面组件
+  WindowConfiguration _createDesktop() {
+    return WindowConfiguration(
+      title: 'desktop',
+      canChanged: false,
+      hasDecoration: false,
+      sizeMode: WindowSizeMode.max,
+      builder: (_) => DesktopWindow(),
+    );
   }
 
   /// 打开新窗口并添加到顶层
   @override
   Future<T?> open<T>(WindowConfiguration window) {
-    _windows.add(window);
+    if (_windows.isEmpty || window.indexMode == WindowIndexMode.top) {
+      // 没有窗口以及窗口模式为顶层则直接插入
+      _windows.add(window);
+    } else {
+      // 窗口不为空时,自动寻找合适的位置插入
+      int index = 0;
+      switch (window.indexMode) {
+        case WindowIndexMode.bottom:
+          // 查找最后一个底层
+          index = _windows.indexWhere(
+              (window) => window.indexMode != WindowIndexMode.bottom);
+          index += index != -1 ? 1 : 0;
+          break;
+        case WindowIndexMode.normal:
+          // 查找第一个顶层
+          index = _windows
+              .indexWhere((window) => window.indexMode == WindowIndexMode.top);
+          break;
+        default:
+          break;
+      }
+      if (index == -1) {
+        index = _windows.length;
+      }
+      _windows.insert(index, window);
+    }
     setState(() {});
     return Future<T>.value(null);
   }
@@ -83,6 +121,20 @@ class WindowContainerState extends State<WindowContainer>
   void close(WindowConfiguration window) {
     _windows.remove(window);
     setState(() {});
+  }
+
+  @override
+  void setState(VoidCallback fn) {
+    if (mounted) {
+      super.setState(fn);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // 添加桌面
+    open(_createDesktop());
   }
 
   @override
@@ -123,7 +175,9 @@ class _WindowStack extends MultiChildRenderObjectWidget {
 }
 
 /// 组件数据
-class _WindowStackParentData extends ContainerBoxParentData<RenderBox> {}
+class _WindowStackParentData extends ContainerBoxParentData<RenderBox> {
+  late WindowConfiguration window;
+}
 
 /// 窗口绘制对象
 class _RenderWindowStack extends RenderBox
@@ -151,17 +205,70 @@ class _RenderWindowStack extends RenderBox
 
   @override
   void setupParentData(covariant RenderObject child) {
-    if (child.parentData! is _WindowStackParentData) {
+    if (child.parentData is! _WindowStackParentData) {
       child.parentData = _WindowStackParentData();
     }
   }
 
   @override
   void performLayout() {
+    int i = 0;
     RenderBox? child = firstChild;
     while (child != null) {
-      child.layout(constraints, parentUsesSize: true);
+      WindowConfiguration window = _windows[i];
+      _WindowStackParentData childParentData =
+          child.parentData as _WindowStackParentData;
+      childParentData.window = window;
+      BoxConstraints childConstraints;
+      switch (window.sizeMode) {
+        case WindowSizeMode.max:
+          // 最大化设置为显示尺寸
+          childConstraints =
+              BoxConstraints.expand(width: size.width, height: size.height);
+          break;
+        case WindowSizeMode.fixed:
+          // 固定值设置为配置的值
+          childConstraints = BoxConstraints.expand(
+              width: window.rect.width, height: window.rect.height);
+          break;
+        case WindowSizeMode.auto:
+        // 自动尺寸
+        default:
+          childConstraints = constraints;
+          break;
+      }
+      child.layout(
+        childConstraints,
+        parentUsesSize: true,
+      );
+      if (window.sizeMode != WindowSizeMode.fixed) {
+        Offset topLeft = Offset.zero;
+        if (window.sizeMode != WindowSizeMode.max) {
+          topLeft = window.rect.topLeft;
+        }
+        // 未直接指定则获取
+        window._rect = Rect.fromLTWH(
+          topLeft.dx,
+          topLeft.dy,
+          child.size.width,
+          child.size.height,
+        );
+      }
+      if (window._position == null) {
+        // 未设置位置时居中显示
+        Offset offset = ((size - window.rect.size) as Offset) / 2.0;
+        window._position = offset;
+        window._rect = Rect.fromLTWH(
+          offset.dx,
+          offset.dy,
+          window.rect.width,
+          window.rect.height,
+        );
+      }
+      // 设置位置
+      childParentData.offset = window.rect.topLeft;
       child = childAfter(child);
+      i++;
     }
   }
 
