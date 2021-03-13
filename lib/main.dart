@@ -27,6 +27,7 @@ class _FlutterUiState extends State<FlutterUi> {
   Widget build(BuildContext context) {
     ThemeProvider themeProvider = ThemeProvider.watch(context);
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'FUI',
       darkTheme: themeProvider.darkTheme,
       theme: themeProvider.theme,

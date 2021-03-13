@@ -62,11 +62,11 @@ class WindowContainerState extends State<WindowContainer>
       for (WindowConfiguration window in _windows)
         // 最小化不显示
         if (window.sizeMode != WindowSizeMode.min)
-          WindowConfigureData(
-            key: window._key,
-            data: window,
-            child: DecoratedWindow(
-              window: window,
+          RepaintBoundary(
+            child: WindowConfigureData(
+              key: window._key,
+              data: window,
+              child: DecoratedWindow(),
             ),
           ),
     ];
@@ -83,9 +83,15 @@ class WindowContainerState extends State<WindowContainer>
     );
   }
 
+  /// 窗口改变监听
+  void _onWindowChanged() {
+    setState(() {});
+  }
+
   /// 打开新窗口并添加到顶层
   @override
   Future<T?> open<T>(WindowConfiguration window) {
+    window.addListener(_onWindowChanged);
     if (_windows.isEmpty || window.indexMode == WindowIndexMode.top) {
       // 没有窗口以及窗口模式为顶层则直接插入
       _windows.add(window);
@@ -119,6 +125,7 @@ class WindowContainerState extends State<WindowContainer>
   /// 关闭指定窗口
   @override
   void close(WindowConfiguration window) {
+    window.removeListener(_onWindowChanged);
     _windows.remove(window);
     setState(() {});
   }
@@ -187,8 +194,12 @@ class _RenderWindowStack extends RenderBox
   List<WindowConfiguration> _windows;
 
   set windows(List<WindowConfiguration> value) {
-    if (_windows != value) {
+    if (_windows != value ||
+        value.where((window) => window._changed).isNotEmpty) {
       _windows = value;
+      _windows.forEach((window) {
+        window._changed = false;
+      });
       markNeedsLayout();
     }
   }

@@ -31,6 +31,8 @@ enum WindowIndexMode {
 class WindowConfiguration extends ChangeNotifier {
   Key _key = UniqueKey();
 
+  bool _changed = true;
+
   /// 能否修改
   final bool canChanged;
 
@@ -82,6 +84,9 @@ class WindowConfiguration extends ChangeNotifier {
   }
 
   /// 窗口大小状态
+  WindowSizeMode _preSizeMode;
+
+  WindowSizeMode get preSizeMode => _preSizeMode;
   WindowSizeMode _sizeMode;
 
   WindowSizeMode get sizeMode => _sizeMode;
@@ -91,6 +96,9 @@ class WindowConfiguration extends ChangeNotifier {
       return;
     }
     if (_sizeMode != value) {
+      if (_sizeMode != WindowSizeMode.max && _sizeMode != WindowSizeMode.min) {
+        _preSizeMode = _sizeMode;
+      }
       _sizeMode = value;
       notifyListeners();
     }
@@ -149,12 +157,20 @@ class WindowConfiguration extends ChangeNotifier {
         _group = group,
         _color = color ?? Colors.white.withOpacity(0.5),
         _sizeMode = sizeMode ?? WindowSizeMode.auto,
+        _preSizeMode = sizeMode ?? WindowSizeMode.auto,
         _indexMode = indexMode ?? WindowIndexMode.normal,
         _position = position,
         _rect = (position ?? Offset.zero) & (size ?? Size.zero) {
     if (_sizeMode != WindowSizeMode.max && _sizeMode != WindowSizeMode.min) {
       _sizeMode = size != null ? WindowSizeMode.fixed : WindowSizeMode.auto;
+      _preSizeMode = _sizeMode;
     }
+  }
+
+  @override
+  void notifyListeners() {
+    _changed = true;
+    super.notifyListeners();
   }
 }
 
