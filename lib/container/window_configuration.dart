@@ -99,6 +99,9 @@ class WindowConfiguration extends ChangeNotifier {
       if (_sizeMode != WindowSizeMode.max && _sizeMode != WindowSizeMode.min) {
         _preSizeMode = _sizeMode;
       }
+      if (value == WindowSizeMode.fixed) {
+        _preSizeMode = WindowSizeMode.fixed;
+      }
       _sizeMode = value;
       notifyListeners();
     }
@@ -120,7 +123,12 @@ class WindowConfiguration extends ChangeNotifier {
   }
 
   /// 窗口区域
-  Offset? _position;
+  bool _hasPosition;
+  Size? _firstSize;
+  Rect _preRect;
+
+  Rect get preRect => _preRect;
+
   Rect _rect;
 
   Rect get rect => _rect;
@@ -130,8 +138,9 @@ class WindowConfiguration extends ChangeNotifier {
       return;
     }
     if (_rect != value) {
+      _preRect = _rect;
       _rect = value;
-      _position = _rect.topLeft;
+      _hasPosition = true;
       notifyListeners();
     }
   }
@@ -159,8 +168,9 @@ class WindowConfiguration extends ChangeNotifier {
         _sizeMode = sizeMode ?? WindowSizeMode.auto,
         _preSizeMode = sizeMode ?? WindowSizeMode.auto,
         _indexMode = indexMode ?? WindowIndexMode.normal,
-        _position = position,
-        _rect = (position ?? Offset.zero) & (size ?? Size.zero) {
+        _hasPosition = position != null,
+        _rect = (position ?? Offset.zero) & (size ?? Size.zero),
+        _preRect = (position ?? Offset.zero) & (size ?? Size.zero) {
     if (_sizeMode != WindowSizeMode.max && _sizeMode != WindowSizeMode.min) {
       _sizeMode = size != null ? WindowSizeMode.fixed : WindowSizeMode.auto;
       _preSizeMode = _sizeMode;
@@ -172,6 +182,25 @@ class WindowConfiguration extends ChangeNotifier {
     _changed = true;
     super.notifyListeners();
   }
+
+  /// 拖动窗口
+  void drag(Offset delta) {
+    rect = rect.shift(delta);
+  }
+
+  /// 设置大小
+  void resize(Rect delta) {
+    sizeMode = WindowSizeMode.fixed;
+    Rect newRect = Rect.fromLTRB(
+      rect.left + delta.left,
+      rect.top + delta.top,
+      rect.right + delta.right,
+      rect.bottom + delta.bottom,
+    );
+    if (newRect.size >= _firstSize!) {
+      rect = newRect;
+    }
+  }
 }
 
 /// 共享当前窗口设置
@@ -179,7 +208,7 @@ class WindowConfigureData extends InheritedWidget {
   final WindowConfiguration data;
 
   const WindowConfigureData({
-    required Key key,
+    Key? key,
     required Widget child,
     required this.data,
   }) : super(key: key, child: child);

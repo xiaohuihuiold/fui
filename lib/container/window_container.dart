@@ -56,22 +56,6 @@ class WindowContainerState extends State<WindowContainer>
   /// 所有显示窗口
   List<WindowConfiguration> _windows = [];
 
-  /// 根据窗口配置生成widget
-  List<Widget> _extractChildren() {
-    return [
-      for (WindowConfiguration window in _windows)
-        // 最小化不显示
-        if (window.sizeMode != WindowSizeMode.min)
-          RepaintBoundary(
-            child: WindowConfigureData(
-              key: window._key,
-              data: window,
-              child: DecoratedWindow(),
-            ),
-          ),
-    ];
-  }
-
   /// 创建桌面组件
   WindowConfiguration _createDesktop() {
     return WindowConfiguration(
@@ -79,8 +63,28 @@ class WindowContainerState extends State<WindowContainer>
       canChanged: false,
       hasDecoration: false,
       sizeMode: WindowSizeMode.max,
+      indexMode: WindowIndexMode.bottom,
       builder: (_) => DesktopWindow(),
     );
+  }
+
+  /// 设置窗口焦点,只能普通窗口有作用
+  void _focusedWindow(WindowConfiguration window) {
+    if (window.indexMode != WindowIndexMode.normal) {
+      return;
+    }
+    int oldIndex = _windows.indexOf(window);
+    int insertIndex = _windows
+        .indexWhere((window) => window.indexMode == WindowIndexMode.top);
+    if (insertIndex == -1) {
+      insertIndex = _windows.length;
+    }
+    if (oldIndex + 1 == insertIndex) {
+      return;
+    }
+    _windows.insert(insertIndex, window);
+    _windows.removeAt(oldIndex);
+    setState(() {});
   }
 
   /// 窗口改变监听
@@ -135,6 +139,26 @@ class WindowContainerState extends State<WindowContainer>
     if (mounted) {
       super.setState(fn);
     }
+  }
+
+  /// 根据窗口配置生成widget
+  List<Widget> _extractChildren() {
+    return [
+      for (WindowConfiguration window in _windows)
+        // 最小化不显示
+        if (window.sizeMode != WindowSizeMode.min)
+          GestureDetector(
+            key: window._key,
+            behavior: HitTestBehavior.opaque,
+            onPanDown: (_) => _focusedWindow(window),
+            child: RepaintBoundary(
+              child: WindowConfigureData(
+                data: window,
+                child: DecoratedWindow(),
+              ),
+            ),
+          ),
+    ];
   }
 
   @override
@@ -234,16 +258,19 @@ class _RenderWindowStack extends RenderBox
       switch (window.sizeMode) {
         case WindowSizeMode.max:
           // 最大化设置为显示尺寸
-          childConstraints =
-              BoxConstraints.expand(width: size.width, height: size.height);
+          childConstraints = BoxConstraints.expand(
+            width: size.width,
+            height: size.height,
+          );
           break;
         case WindowSizeMode.fixed:
           // 固定值设置为配置的值
           childConstraints = BoxConstraints.expand(
-              width: window.rect.width, height: window.rect.height);
+            width: window.rect.width,
+            height: window.rect.height,
+          );
           break;
         case WindowSizeMode.auto:
-        // 自动尺寸
         default:
           childConstraints = constraints;
           break;
@@ -252,30 +279,24 @@ class _RenderWindowStack extends RenderBox
         childConstraints,
         parentUsesSize: true,
       );
-      if (window.sizeMode != WindowSizeMode.fixed) {
-        Offset topLeft = Offset.zero;
-        if (window.sizeMode != WindowSizeMode.max) {
-          topLeft = window.rect.topLeft;
-        }
-        // 未直接指定则获取
-        window._rect = Rect.fromLTWH(
-          topLeft.dx,
-          topLeft.dy,
-          child.size.width,
-          child.size.height,
-        );
+
+      // 计算窗口大小与位置
+      Size childSize = child.size;
+      Offset childOffset;
+      if (window.sizeMode == WindowSizeMode.max) {
+        // 最大化时,位置设置为原点
+        childOffset = Offset.zero;
+      } else if (window._hasPosition) {
+        // 不是最大化并且有位置时设置为左上角
+        childOffset = window.rect.topLeft;
+      } else {
+        // 未设置位置则居中显示
+        childOffset = ((size - childSize) as Offset) / 2.0;
       }
-      if (window._position == null) {
-        // 未设置位置时居中显示
-        Offset offset = ((size - window.rect.size) as Offset) / 2.0;
-        window._position = offset;
-        window._rect = Rect.fromLTWH(
-          offset.dx,
-          offset.dy,
-          window.rect.width,
-          window.rect.height,
-        );
-      }
+      window._preRect = window.rect;
+      window._rect = childOffset & childSize;
+      window._firstSize ??= childSize;
+
       // 设置位置
       childParentData.offset = window.rect.topLeft;
       child = childAfter(child);

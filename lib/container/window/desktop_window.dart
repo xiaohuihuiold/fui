@@ -18,7 +18,6 @@ class _DesktopWindowState extends State<DesktopWindow> {
       fit: StackFit.passthrough,
       children: [
         _DesktopWindowBackground(),
-        //
         Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -28,12 +27,15 @@ class _DesktopWindowState extends State<DesktopWindow> {
                 onPressed: () {
                   WindowContainer.of(context).open(
                     WindowConfiguration(
-                      title: '测试',
-                      position: Offset(50, 20),
+                      title: '测试测试测试测试',
                       builder: (_) {
                         return Container(
-                          color: Colors.redAccent,
-                          child: FlutterLogo(size: 280),
+                          child: ElevatedButton(
+                            child: Text('Button'),
+                            onPressed: () {
+                              print('test');
+                            },
+                          ),
                         );
                       },
                     ),
@@ -124,9 +126,10 @@ class _CirclePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    while (_circles.length < 80) {
+    while (_circles.length < 40) {
       _circles.add(_createCircle(size));
     }
+    canvas.drawRect(Offset.zero & size, Paint()..color = Colors.white);
     _circlePaint.blendMode = BlendMode.multiply;
     _circles.forEach((circle) {
       double progress =
@@ -145,13 +148,15 @@ class _CirclePainter extends CustomPainter {
       );
     });
     _circles.removeWhere((circle) => circle.endTime <= time);
+    canvas.drawRect(
+        Offset.zero & size, Paint()..color = Colors.white.withOpacity(0.4));
   }
 
   _Circle _createCircle(Size size) {
     return _Circle(
       startTime: time,
       endTime: time + Random().nextInt(30000) + 15000,
-      radius: Random().nextInt(80) + size.width / 8.0,
+      radius: Random().nextInt(120) + size.width / 4.0,
       color: Colors.accents[Random().nextInt(Colors.accents.length)],
       begin: Offset(
         Random().nextInt(size.width.toInt() * 2).toDouble() - size.width / 2.0,
