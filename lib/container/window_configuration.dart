@@ -1,5 +1,17 @@
 part of 'window_container.dart';
 
+/// 窗口类型
+enum WindowType {
+  /// 桌面类型,只能至于最底层
+  desktop,
+
+  /// 任务栏,在最顶层
+  task_bar,
+
+  /// 普通窗口
+  normal,
+}
+
 /// 窗口大小模式
 enum WindowSizeMode {
   /// 最大化
@@ -31,7 +43,13 @@ enum WindowIndexMode {
 class WindowConfiguration extends ChangeNotifier {
   Key _key = UniqueKey();
 
+  /// 是否已经改变
   bool _changed = true;
+
+  /// 窗口类型
+  WindowType _type = WindowType.normal;
+
+  WindowType get type => _type;
 
   /// 能否修改
   final bool canChanged;
@@ -49,9 +67,9 @@ class WindowConfiguration extends ChangeNotifier {
   final bool resizeable;
 
   /// 窗口组
-  String? _group;
+  String _group;
 
-  String? get group => _group;
+  String get group => _group;
 
   /// 窗口标题
   String _title;
@@ -148,6 +166,39 @@ class WindowConfiguration extends ChangeNotifier {
   /// 组件构造器
   final WidgetBuilder builder;
 
+  factory WindowConfiguration._type({
+    required WindowType type,
+    required String title,
+    String? group,
+    Color? color,
+    bool canChanged = true,
+    bool hasDecoration = true,
+    bool hasMaximize = true,
+    bool hasMinimize = true,
+    bool resizeable = true,
+    WindowSizeMode? sizeMode,
+    Offset? position,
+    Size? size,
+    WindowIndexMode? indexMode,
+    required WidgetBuilder builder,
+  }) {
+    return WindowConfiguration(
+      title: title,
+      group: group,
+      color: color,
+      canChanged: canChanged,
+      hasDecoration: hasDecoration,
+      hasMaximize: hasMaximize,
+      hasMinimize: hasMinimize,
+      resizeable: resizeable,
+      sizeMode: sizeMode,
+      position: position,
+      size: size,
+      indexMode: indexMode,
+      builder: builder,
+    ).._type = type;
+  }
+
   WindowConfiguration({
     required String title,
     String? group,
@@ -163,7 +214,7 @@ class WindowConfiguration extends ChangeNotifier {
     WindowIndexMode? indexMode,
     required this.builder,
   })   : _title = title,
-        _group = group,
+        _group = group ?? Uuid().v4(),
         _color = color ?? Colors.white.withOpacity(0.5),
         _sizeMode = sizeMode ?? WindowSizeMode.auto,
         _preSizeMode = sizeMode ?? WindowSizeMode.auto,

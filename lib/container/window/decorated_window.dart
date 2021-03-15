@@ -21,15 +21,19 @@ class DecoratedWindow extends StatelessWidget {
 
   /// 包裹装饰
   Widget _wrapDecoration(
-      BuildContext context, WindowConfiguration window, Widget result) {
+    BuildContext context,
+    WindowConfiguration window,
+    WindowContainerData windowContainer,
+    Widget result,
+  ) {
     // 边距
     result = Padding(
-      padding: EdgeInsets.only(left: 2.0, top: 0.0, right: 2.0, bottom: 2.0),
+      padding: EdgeInsets.only(left: 2.0, top: 2.0, right: 2.0, bottom: 2.0),
       child: result,
     );
     result = Container(
       width: double.infinity,
-      color: Theme.of(context).backgroundColor,
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: result,
     );
     // 标题栏
@@ -51,12 +55,15 @@ class DecoratedWindow extends StatelessWidget {
     result = Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor.withOpacity(0.8),
+        color: Theme.of(context)
+            .scaffoldBackgroundColor
+            .withOpacity(windowContainer.topWindow == window ? 0.8 : 0.4),
         borderRadius: BorderRadius.circular(4.0),
         boxShadow: [
           BoxShadow(
-              color: Theme.of(context).shadowColor.withOpacity(0.4),
-              blurRadius: 4.0),
+            color: Theme.of(context).shadowColor.withOpacity(0.4),
+            blurRadius: 4.0,
+          ),
         ],
       ),
       child: result,
@@ -67,20 +74,23 @@ class DecoratedWindow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     WindowConfiguration window = WindowConfigureData.of(context).data;
+    WindowContainerData windowContainer = WindowContainerData.of(context);
     Widget result = window.builder(context);
     if (window.hasDecoration) {
-      result = _wrapDecoration(context, window, result);
+      result = _wrapDecoration(context, window, windowContainer, result);
     }
     return result;
   }
 }
 
+/// 标题栏
 class DecoratedWindowTitleBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     WindowConfiguration window = WindowConfigureData.of(context).data;
     return Container(
       alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
