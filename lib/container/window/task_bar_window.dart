@@ -71,7 +71,7 @@ class __TaskBarWindowListState extends State<_TaskBarWindowList> {
           padding: const EdgeInsets.all(4.0),
           child: InkWell(
             onTap: () {
-              group.value.first.sizeMode = group.value.first.preSizeMode;
+              group.value.first.minimize();
             },
             child: Container(
               height: double.infinity,

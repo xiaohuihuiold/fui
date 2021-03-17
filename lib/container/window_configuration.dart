@@ -102,9 +102,6 @@ class WindowConfiguration extends ChangeNotifier {
   }
 
   /// 窗口大小状态
-  WindowSizeMode _preSizeMode;
-
-  WindowSizeMode get preSizeMode => _preSizeMode;
   WindowSizeMode _sizeMode;
 
   WindowSizeMode get sizeMode => _sizeMode;
@@ -114,12 +111,6 @@ class WindowConfiguration extends ChangeNotifier {
       return;
     }
     if (_sizeMode != value) {
-      if (_sizeMode != WindowSizeMode.max && _sizeMode != WindowSizeMode.min) {
-        _preSizeMode = _sizeMode;
-      }
-      if (value == WindowSizeMode.fixed) {
-        _preSizeMode = WindowSizeMode.fixed;
-      }
       _sizeMode = value;
       notifyListeners();
     }
@@ -143,9 +134,6 @@ class WindowConfiguration extends ChangeNotifier {
   /// 窗口区域
   bool _hasPosition;
   Size? _firstSize;
-  Rect _preRect;
-
-  Rect get preRect => _preRect;
 
   Rect _rect;
 
@@ -156,7 +144,6 @@ class WindowConfiguration extends ChangeNotifier {
       return;
     }
     if (_rect != value) {
-      _preRect = _rect;
       _rect = value;
       _hasPosition = true;
       notifyListeners();
@@ -217,14 +204,11 @@ class WindowConfiguration extends ChangeNotifier {
         _group = group ?? Uuid().v4(),
         _color = color ?? Colors.white.withOpacity(0.5),
         _sizeMode = sizeMode ?? WindowSizeMode.auto,
-        _preSizeMode = sizeMode ?? WindowSizeMode.auto,
         _indexMode = indexMode ?? WindowIndexMode.normal,
         _hasPosition = position != null,
-        _rect = (position ?? Offset.zero) & (size ?? Size.zero),
-        _preRect = (position ?? Offset.zero) & (size ?? Size.zero) {
+        _rect = (position ?? Offset.zero) & (size ?? Size.zero) {
     if (_sizeMode != WindowSizeMode.max && _sizeMode != WindowSizeMode.min) {
       _sizeMode = size != null ? WindowSizeMode.fixed : WindowSizeMode.auto;
-      _preSizeMode = _sizeMode;
     }
   }
 
@@ -250,6 +234,56 @@ class WindowConfiguration extends ChangeNotifier {
     );
     if (newRect.size >= _firstSize!) {
       rect = newRect;
+    }
+  }
+
+  /// 最大化之前的模式
+  WindowSizeMode? _maxSizeMode;
+  Rect? _maxRect;
+
+  /// 最大化
+  void maximize() {
+    if (_sizeMode != WindowSizeMode.max) {
+      // 记录当前窗口状态
+      _maxSizeMode = _sizeMode;
+      _maxRect = _rect;
+      // 跳过最小化
+      if (_maxSizeMode == WindowSizeMode.min) {
+        _maxSizeMode = _minSizeMode;
+        _maxRect = _minRect;
+      }
+      // 如果无值则自动
+      if (_maxSizeMode == null || _maxSizeMode == WindowSizeMode.max) {
+        _maxSizeMode = WindowSizeMode.auto;
+        _maxRect = Rect.zero;
+      }
+      // 执行最大化
+      sizeMode = WindowSizeMode.max;
+    } else {
+      // 执行恢复
+      _rect = _maxRect ?? Rect.zero;
+      sizeMode = _maxSizeMode ?? WindowSizeMode.auto;
+      _maxSizeMode = _sizeMode;
+    }
+  }
+
+  /// 最小化之前的模式
+  WindowSizeMode? _minSizeMode;
+  Rect? _minRect;
+
+  /// 最小化
+  void minimize() {
+    if (_sizeMode != WindowSizeMode.min) {
+      // 记录当前窗口状态
+      _minSizeMode = _sizeMode;
+      _minRect = _rect;
+      // 执行最小化
+      sizeMode = WindowSizeMode.min;
+    } else {
+      // 执行恢复
+      _rect = _minRect ?? Rect.zero;
+      sizeMode = _minSizeMode ?? WindowSizeMode.auto;
+      _minSizeMode = _sizeMode;
     }
   }
 }

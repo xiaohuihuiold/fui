@@ -360,7 +360,6 @@ class _RenderWindowStack extends RenderBox
           BoxConstraints.tightFor(width: size.width),
           parentUsesSize: true,
         );
-        window._preRect = window.rect;
         window._rect =
             Offset(0.0, size.height - child.size.height) & child.size;
         window._firstSize ??= child.size;
@@ -432,7 +431,6 @@ class _RenderWindowStack extends RenderBox
           // 未设置位置则居中显示
           childOffset = ((size - childSize) as Offset) / 2.0;
         }
-        window._preRect = window.rect;
         window._rect = childOffset & childSize;
         window._firstSize ??= childSize;
 

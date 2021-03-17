@@ -113,7 +113,7 @@ class DecoratedWindowTitleBar extends StatelessWidget {
             if (window.hasMinimize)
               InkWell(
                 onTap: () {
-                  window.sizeMode = WindowSizeMode.min;
+                  window.minimize();
                 },
                 child: Container(
                   width: 28.0,
@@ -126,12 +126,7 @@ class DecoratedWindowTitleBar extends StatelessWidget {
             if (window.hasMaximize)
               InkWell(
                 onTap: () {
-                  if (window.sizeMode != WindowSizeMode.max) {
-                    window.sizeMode = WindowSizeMode.max;
-                  } else {
-                    window.sizeMode = window.preSizeMode;
-                    window.rect = window.preRect;
-                  }
+                  window.maximize();
                 },
                 child: Container(
                   width: 28.0,
@@ -209,6 +204,25 @@ class _DecoratedWindowResizeableState extends State<DecoratedWindowResizeable> {
   bool _resizeBottom = false;
   MouseCursor _cursor = MouseCursor.defer;
 
+  /// 设置当前缩放方向
+  void _setScaleDir(WindowConfiguration window, Offset position) {
+    _resizeLeft = false;
+    _resizeRight = false;
+    _resizeBottom = false;
+    if ((!window.resizeable) || window.sizeMode == WindowSizeMode.max) {
+      return;
+    }
+    Offset local = position;
+    if (local.dx <= 4.0) {
+      _resizeLeft = true;
+    } else if (local.dx >= window.rect.width - 4.0) {
+      _resizeRight = true;
+    }
+    if (local.dy >= window.rect.height - 4.0) {
+      _resizeBottom = true;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     WindowConfiguration window = WindowConfigureData.of(context).data;
@@ -219,21 +233,7 @@ class _DecoratedWindowResizeableState extends State<DecoratedWindowResizeable> {
         setState(() {});
       },
       onHover: (event) {
-        _resizeLeft = false;
-        _resizeRight = false;
-        _resizeBottom = false;
-        if ((!window.resizeable) || window.sizeMode == WindowSizeMode.max) {
-          return;
-        }
-        Offset local = event.localPosition;
-        if (local.dx <= 4.0) {
-          _resizeLeft = true;
-        } else if (local.dx >= window.rect.width - 4.0) {
-          _resizeRight = true;
-        }
-        if (local.dy >= window.rect.height - 4.0) {
-          _resizeBottom = true;
-        }
+        _setScaleDir(window, event.localPosition);
         _cursor = MouseCursor.defer;
         if (_resizeBottom) {
           _cursor = SystemMouseCursors.resizeUpDown;
@@ -258,6 +258,9 @@ class _DecoratedWindowResizeableState extends State<DecoratedWindowResizeable> {
         onPanEnd: (_) {
           _cursor = MouseCursor.defer;
           setState(() {});
+        },
+        onPanDown: (detail) {
+          _setScaleDir(window, detail.localPosition);
         },
         onPanUpdate: (detail) {
           Rect deltaRect = Rect.zero;
