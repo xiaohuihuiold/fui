@@ -101,7 +101,7 @@ class WindowContainerState extends State<WindowContainer>
       return;
     }
     // 查找旧的下标和顶层下标
-    int oldIndex = _windows.indexOf(window);
+    final int oldIndex = _windows.indexOf(window);
     int insertIndex = _windows
         .indexWhere((window) => window.indexMode == WindowIndexMode.top);
     if (insertIndex == -1) {
@@ -168,6 +168,7 @@ class WindowContainerState extends State<WindowContainer>
     if (_windowGroups[window.group]?.isEmpty == true) {
       _windowGroups.remove(window.group);
     }
+    // 移除窗口
     _windows.remove(window);
     setState(() {});
   }
@@ -183,19 +184,18 @@ class WindowContainerState extends State<WindowContainer>
   List<Widget> _extractChildren() {
     return [
       for (WindowConfiguration window in _windows)
-        // 最小化不显示
-        if (window.sizeMode != WindowSizeMode.min)
-          GestureDetector(
-            key: window._key,
+        _WindowOverlay(
+          key: window._key,
+          window: window,
+          child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanDown: (_) => focus(window),
-            child: RepaintBoundary(
-              child: WindowConfigureData(
-                data: window,
-                child: DecoratedWindow(),
-              ),
+            child: WindowConfigureData(
+              data: window,
+              child: DecoratedWindow(),
             ),
           ),
+        ),
     ];
   }
 
@@ -271,6 +271,167 @@ class WindowContainerData extends InheritedWidget {
   }
 }
 
+/// 窗口叠加层
+///
+/// 使用叠加层是为了使layout和paint作用范围限制到窗口内
+class _WindowOverlay extends SingleChildRenderObjectWidget {
+  /// 窗口配置
+  final WindowConfiguration window;
+
+  /// 窗口组件
+  final Widget child;
+
+  _WindowOverlay({
+    required Key key,
+    required this.window,
+    required this.child,
+  }) : super(key: key, child: child);
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _RenderWindowOverlay(window: window);
+  }
+
+  @override
+  void updateRenderObject(
+      BuildContext context, covariant _RenderWindowOverlay renderObject) {
+    renderObject..window = window;
+  }
+}
+
+class _RenderWindowOverlay extends RenderBox
+    with RenderObjectWithChildMixin<RenderBox> {
+  WindowConfiguration _window;
+
+  /// 对象变化或者值改变则relayout
+  set window(WindowConfiguration value) {
+    if (_window != value || _window._changed) {
+      _window = value;
+      _window._changed = false;
+      markNeedsLayout();
+    }
+  }
+
+  _RenderWindowOverlay({
+    required WindowConfiguration window,
+  }) : _window = window;
+
+  /// 设置repaint区域
+  @override
+  bool get isRepaintBoundary => true;
+
+  /// 为true能让relayout不会影响到父RenderObject
+  @override
+  bool get sizedByParent => true;
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) => constraints.biggest;
+
+  @override
+  void setupParentData(covariant RenderObject child) {
+    if (child is! BoxParentData) {
+      child.parentData = BoxParentData();
+    }
+  }
+
+  @override
+  void performLayout() {
+    // 只能用在[_WindowStack]
+    assert(parentData is _WindowStackParentData);
+    final _WindowStackParentData stackParentData =
+        parentData as _WindowStackParentData;
+    if (child == null || _window.sizeMode == WindowSizeMode.min) {
+      return;
+    }
+    final bool isTaskBar = _window.type == WindowType.task_bar;
+    // 任务栏特殊处理
+    final Rect taskRect = isTaskBar ? Rect.zero : stackParentData.taskBarRect;
+    final BoxParentData childParentData = child!.parentData as BoxParentData;
+    BoxConstraints childConstraints;
+    switch (_window.sizeMode) {
+      case WindowSizeMode.max:
+        // 最大化设置为显示尺寸
+        // 同时普通窗口会多减去任务栏的高度
+        childConstraints = BoxConstraints.expand(
+          width: size.width,
+          height: size.height -
+              (_window.type == WindowType.normal ? taskRect.height : 0.0),
+        );
+        break;
+      case WindowSizeMode.fixed:
+        // 固定值设置为配置的值
+        childConstraints = BoxConstraints.expand(
+          width: _window.rect.width,
+          height: _window.rect.height,
+        );
+        break;
+      case WindowSizeMode.auto:
+      default:
+        // 靠子组件决定大小
+        childConstraints = constraints.loosen();
+        break;
+    }
+    if (isTaskBar) {
+      // 任务栏占满宽度,高度自适应
+      childConstraints = BoxConstraints.tightFor(width: size.width);
+    }
+    child!.layout(
+      childConstraints,
+      parentUsesSize: true,
+    );
+
+    // 计算窗口大小与位置
+    final Size childSize = child!.size;
+    Offset childOffset;
+    if (_window.sizeMode == WindowSizeMode.max) {
+      // 最大化时,位置设置为原点
+      childOffset = Offset.zero;
+    } else if (_window._hasPosition) {
+      // 不是最大化并且有位置时设置为左上角
+      childOffset = _window.rect.topLeft;
+    } else {
+      // 未设置位置则居中显示
+      childOffset = ((size - childSize) as Offset) / 2.0;
+    }
+    // 任务栏在底部,普通的就按照上面计算的位置来
+    _window._rect = (isTaskBar
+            ? Offset(0.0, size.height - childSize.height)
+            : childOffset) &
+        childSize;
+    _window._firstSize ??= childSize;
+
+    // 设置位置
+    childParentData.offset = _window.rect.topLeft;
+    if (isTaskBar) {
+      stackParentData.taskBarRect = _window.rect;
+    }
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    if (child != null && _window.sizeMode != WindowSizeMode.min) {
+      final BoxParentData childParentData = child!.parentData! as BoxParentData;
+      context.paintChild(child!, childParentData.offset + offset);
+    }
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    if (_window.sizeMode == WindowSizeMode.min) {
+      return false;
+    }
+    final BoxParentData childParentData = child!.parentData! as BoxParentData;
+    return result.addWithPaintOffset(
+      offset: childParentData.offset,
+      position: position,
+      hitTest: (BoxHitTestResult result, Offset? transformed) {
+        assert(transformed == position - childParentData.offset);
+        return child!.hitTest(result, position: transformed!);
+      },
+    );
+  }
+}
+
 /// 窗口绘制组件
 class _WindowStack extends MultiChildRenderObjectWidget {
   /// 窗口配置
@@ -280,10 +441,7 @@ class _WindowStack extends MultiChildRenderObjectWidget {
     Key? key,
     required this.windows,
     required List<Widget> children,
-  }) : super(
-          key: key,
-          children: children,
-        );
+  }) : super(key: key, children: children);
 
   @override
   RenderObject createRenderObject(BuildContext context) {
@@ -302,6 +460,9 @@ class _WindowStack extends MultiChildRenderObjectWidget {
 /// 组件数据
 class _WindowStackParentData extends ContainerBoxParentData<RenderBox> {
   late WindowConfiguration window;
+
+  /// 任务栏区域
+  Rect taskBarRect = Rect.zero;
 }
 
 /// 窗口绘制对象
@@ -311,13 +472,10 @@ class _RenderWindowStack extends RenderBox
         RenderBoxContainerDefaultsMixin<RenderBox, _WindowStackParentData> {
   List<WindowConfiguration> _windows;
 
+  /// 当数量和对象有一个改变时重绘
   set windows(List<WindowConfiguration> value) {
-    if (_windows != value ||
-        value.where((window) => window._changed).isNotEmpty) {
+    if (_isWindowsChanged(_windows, value)) {
       _windows = value;
-      _windows.forEach((window) {
-        window._changed = false;
-      });
       markNeedsLayout();
     }
   }
@@ -325,6 +483,22 @@ class _RenderWindowStack extends RenderBox
   _RenderWindowStack({
     required List<WindowConfiguration> windows,
   }) : _windows = windows;
+
+  /// 检查是否改变数组对象
+  bool _isWindowsChanged(List<WindowConfiguration> oldWindows,
+      List<WindowConfiguration> newWindows) {
+    if (oldWindows.length != newWindows.length) {
+      return true;
+    }
+    bool changed = false;
+    for (int i = 0; i < oldWindows.length; i++) {
+      if (oldWindows[i] != newWindows[i]) {
+        changed = true;
+        break;
+      }
+    }
+    return changed;
+  }
 
   @override
   bool get sizedByParent => true;
@@ -344,26 +518,19 @@ class _RenderWindowStack extends RenderBox
     // 查找任务栏
     int i = 0;
     RenderBox? taskChild;
+    Rect taskBarRect = Rect.zero;
     RenderBox? child = firstChild;
     while (child != null) {
-      WindowConfiguration window = _windows[i];
-      while (i < _windows.length && window.sizeMode == WindowSizeMode.min) {
-        i++;
-        window = _windows[i];
-      }
+      final WindowConfiguration window = _windows[i];
       if (window.type == WindowType.task_bar) {
         taskChild = child;
-        _WindowStackParentData taskChildParentData =
+        final _WindowStackParentData taskChildParentData =
             taskChild.parentData as _WindowStackParentData;
         taskChildParentData.window = window;
         taskChild.layout(
-          BoxConstraints.tightFor(width: size.width),
-          parentUsesSize: true,
+          BoxConstraints.expand(width: size.width, height: size.height),
         );
-        window._rect =
-            Offset(0.0, size.height - child.size.height) & child.size;
-        window._firstSize ??= child.size;
-        taskChildParentData.offset = window.rect.topLeft;
+        taskBarRect = taskChildParentData.taskBarRect;
         break;
       }
       child = childAfter(child);
@@ -374,68 +541,16 @@ class _RenderWindowStack extends RenderBox
     i = 0;
     child = firstChild;
     while (child != null) {
-      WindowConfiguration window = _windows[i];
-      while (i < _windows.length && window.sizeMode == WindowSizeMode.min) {
-        i++;
-        window = _windows[i];
-      }
+      final WindowConfiguration window = _windows[i];
       if (window.type != WindowType.task_bar) {
         // 跳过任务栏
-        _WindowStackParentData childParentData =
+        final _WindowStackParentData childParentData =
             child.parentData as _WindowStackParentData;
+        childParentData.taskBarRect = taskBarRect;
         childParentData.window = window;
-        BoxConstraints childConstraints;
-        switch (window.sizeMode) {
-          case WindowSizeMode.max:
-            // 最大化设置为显示尺寸
-            if (window.type == WindowType.normal) {
-              // 普通窗口需要考虑任务栏大小
-              childConstraints = BoxConstraints.expand(
-                width: size.width,
-                height: size.height - ((taskChild?.size.height) ?? 0.0),
-              );
-            } else {
-              childConstraints = BoxConstraints.expand(
-                width: size.width,
-                height: size.height,
-              );
-            }
-            break;
-          case WindowSizeMode.fixed:
-            // 固定值设置为配置的值
-            childConstraints = BoxConstraints.expand(
-              width: window.rect.width,
-              height: window.rect.height,
-            );
-            break;
-          case WindowSizeMode.auto:
-          default:
-            childConstraints = constraints;
-            break;
-        }
         child.layout(
-          childConstraints,
-          parentUsesSize: true,
+          BoxConstraints.expand(width: size.width, height: size.height),
         );
-
-        // 计算窗口大小与位置
-        Size childSize = child.size;
-        Offset childOffset;
-        if (window.sizeMode == WindowSizeMode.max) {
-          // 最大化时,位置设置为原点
-          childOffset = Offset.zero;
-        } else if (window._hasPosition) {
-          // 不是最大化并且有位置时设置为左上角
-          childOffset = window.rect.topLeft;
-        } else {
-          // 未设置位置则居中显示
-          childOffset = ((size - childSize) as Offset) / 2.0;
-        }
-        window._rect = childOffset & childSize;
-        window._firstSize ??= childSize;
-
-        // 设置位置
-        childParentData.offset = window.rect.topLeft;
       }
       child = childAfter(child);
       i++;
