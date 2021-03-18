@@ -44,7 +44,9 @@ class DecoratedWindow extends StatelessWidget {
         children: [
           DecoratedWindowDraggable(child: DecoratedWindowTitleBar()),
           Divider(thickness: 1.0, height: 1.0),
-          if (window.sizeMode == WindowSizeMode.auto)
+          if (window.sizeMode == WindowSizeMode.auto ||
+              (window.minSizeMode == WindowSizeMode.auto &&
+                  !window.isAnimationCompleted))
             result
           else
             Expanded(child: result),

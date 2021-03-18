@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -187,12 +189,10 @@ class WindowContainerState extends State<WindowContainer>
         _WindowOverlay(
           key: window._key,
           window: window,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanDown: (_) => focus(window),
-            child: WindowConfigureData(
-              data: window,
-              child: DecoratedWindow(),
+          child: WindowConfigureData(
+            data: window,
+            child: _WindowDecorated(
+              onFocused: (window) => focus(window),
             ),
           ),
         ),
@@ -271,6 +271,181 @@ class WindowContainerData extends InheritedWidget {
   }
 }
 
+typedef OnWindowFocused = void Function(WindowConfiguration window);
+
+/// 窗口装饰
+class _WindowDecorated extends StatefulWidget {
+  /// 动画时间
+  final Duration duration;
+
+  /// 获取窗口焦点
+  final OnWindowFocused onFocused;
+
+  const _WindowDecorated({
+    Key? key,
+    this.duration = const Duration(milliseconds: 200),
+    required this.onFocused,
+  }) : super(key: key);
+
+  @override
+  __WindowDecoratedState createState() => __WindowDecoratedState();
+}
+
+class __WindowDecoratedState extends State<_WindowDecorated>
+    with TickerProviderStateMixin {
+  AnimationController? _controller;
+  late WindowConfiguration _window;
+
+  /// 记录上一次模式,用以判断是否改变
+  WindowSizeMode? _oldSizeMode;
+
+  /// 判断动画执行方向
+  bool _isReverse = false;
+
+  /// 当前值,过渡用
+  double _value = 0.0;
+
+  /// 更新动画状态,一帧执行完再更新
+  void _updateStatus(bool isCompleted) {
+    WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
+      _window.isAnimationCompleted = isCompleted;
+    });
+  }
+
+  /// 更新动画状态,需要判断执行方向
+  void _updateAnimationStatus(AnimationStatus status) {
+    switch (status) {
+      case AnimationStatus.dismissed:
+        if (_isReverse) {
+          _updateStatus(true);
+        }
+        break;
+      case AnimationStatus.completed:
+        if (!_isReverse) {
+          _updateStatus(true);
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  /// 初始化动画
+  void _initAnimation() {
+    _controller?.dispose();
+    _controller = AnimationController(
+      duration: widget.duration,
+      vsync: this,
+    );
+    _controller!.addListener(() {
+      _value = _controller!.value;
+      setState(() {});
+    });
+    _controller!.addStatusListener(_updateAnimationStatus);
+  }
+
+  /// 播放动画
+  void _startAnimation({bool isReverse = false}) {
+    _isReverse = isReverse;
+    _stopAnimation();
+    _updateStatus(false);
+    if (!isReverse) {
+      _controller!.forward(from: _value);
+    } else {
+      _controller!.reverse(from: _value);
+    }
+  }
+
+  /// 停止动画
+  void _stopAnimation() {
+    _controller!.stop();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initAnimation();
+  }
+
+  @override
+  void didUpdateWidget(covariant _WindowDecorated oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.duration != widget.duration) {
+      // 时长更新重新初始化动画
+      _initAnimation();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _window = WindowConfigureData.of(context).data;
+    // 发送改变时再执行
+    if (_window.sizeMode != _oldSizeMode) {
+      // 是否需要动画
+      if (_window.needAnimation) {
+        // 第一次启动以及非最小化执行正向动画
+        if (_oldSizeMode == null || _window.sizeMode != WindowSizeMode.min) {
+          // 最大化与非最小化切换
+          if ((_window.sizeMode == WindowSizeMode.max &&
+                  _oldSizeMode != WindowSizeMode.min) ||
+              (_window.sizeMode != WindowSizeMode.min &&
+                  _oldSizeMode == WindowSizeMode.max)) {
+            _value = 0.0;
+          }
+          // 非缩放执行
+          if (!(_oldSizeMode == WindowSizeMode.auto &&
+              _window.sizeMode == WindowSizeMode.fixed)) {
+            _startAnimation();
+          }
+        } else if (_window.sizeMode == WindowSizeMode.min) {
+          // 最小化执行反向动画
+          _startAnimation(isReverse: true);
+        }
+      }
+      _oldSizeMode = _window.sizeMode;
+    }
+  }
+
+  @override
+  void dispose() {
+    _stopAnimation();
+    _controller!.dispose();
+    super.dispose();
+  }
+
+  @override
+  void setState(VoidCallback fn) {
+    if (mounted) {
+      super.setState(fn);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    WindowConfiguration window = WindowConfigureData.of(context).data;
+    Widget result = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onPanDown: (_) => widget.onFocused(window),
+      child: DecoratedWindow(),
+    );
+    if (window.needAnimation) {
+      Matrix4 matrix4 = Matrix4.identity();
+      matrix4.setEntry(3, 2, 0.001);
+      matrix4.rotateX(((45.0 - (45.0 * _controller!.value)) / 180) * pi);
+      result = Transform(
+        alignment: Alignment.topCenter,
+        transform: matrix4,
+        child: Opacity(
+          opacity: _controller!.value,
+          child: result,
+        ),
+      );
+    }
+    return result;
+  }
+}
+
 /// 窗口叠加层
 ///
 /// 使用叠加层是为了使layout和paint作用范围限制到窗口内
@@ -340,7 +515,10 @@ class _RenderWindowOverlay extends RenderBox
     assert(parentData is _WindowStackParentData);
     final _WindowStackParentData stackParentData =
         parentData as _WindowStackParentData;
-    if (child == null || _window.sizeMode == WindowSizeMode.min) {
+    // 如果动画未执行完成则继续
+    if (child == null ||
+        (_window.sizeMode == WindowSizeMode.min &&
+            _window.isAnimationCompleted)) {
       return;
     }
     final bool isTaskBar = _window.type == WindowType.task_bar;
@@ -348,7 +526,12 @@ class _RenderWindowOverlay extends RenderBox
     final Rect taskRect = isTaskBar ? Rect.zero : stackParentData.taskBarRect;
     final BoxParentData childParentData = child!.parentData as BoxParentData;
     BoxConstraints childConstraints;
-    switch (_window.sizeMode) {
+    WindowSizeMode sizeMode = _window.sizeMode;
+    // 找回之前的模式
+    if (sizeMode == WindowSizeMode.min && !_window.isAnimationCompleted) {
+      sizeMode = _window._minSizeMode ?? sizeMode;
+    }
+    switch (sizeMode) {
       case WindowSizeMode.max:
         // 最大化设置为显示尺寸
         // 同时普通窗口会多减去任务栏的高度
@@ -383,7 +566,7 @@ class _RenderWindowOverlay extends RenderBox
     // 计算窗口大小与位置
     final Size childSize = child!.size;
     Offset childOffset;
-    if (_window.sizeMode == WindowSizeMode.max) {
+    if (sizeMode == WindowSizeMode.max) {
       // 最大化时,位置设置为原点
       childOffset = Offset.zero;
     } else if (_window._hasPosition) {
@@ -409,10 +592,14 @@ class _RenderWindowOverlay extends RenderBox
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (child != null && _window.sizeMode != WindowSizeMode.min) {
-      final BoxParentData childParentData = child!.parentData! as BoxParentData;
-      context.paintChild(child!, childParentData.offset + offset);
+    // 动画未执行完成则继续
+    if (child == null ||
+        (_window.sizeMode == WindowSizeMode.min &&
+            _window.isAnimationCompleted)) {
+      return;
     }
+    final BoxParentData childParentData = child!.parentData! as BoxParentData;
+    context.paintChild(child!, childParentData.offset + offset);
   }
 
   @override

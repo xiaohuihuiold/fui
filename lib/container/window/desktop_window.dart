@@ -12,6 +12,57 @@ class DesktopWindow extends StatefulWidget {
 }
 
 class _DesktopWindowState extends State<DesktopWindow> {
+  void _openAWindow() {
+    WindowContainer.of(context).open(
+      WindowConfiguration(
+        title: 'A Window',
+        size: Size(500, 300),
+        builder: (_) {
+          return Scaffold(
+            floatingActionButton: FloatingActionButton(
+              mini: true,
+              child: Icon(Icons.add),
+              onPressed: () {},
+            ),
+            body: Center(
+              child: Text('count: 0'),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _openBWindow() {
+    WindowContainer.of(context).open(
+      WindowConfiguration(
+        title: 'B Window',
+        size: Size(150, 150),
+        builder: (_) {
+          return Center(
+            child: Container(
+              width: 50,
+              height: 50,
+              child: FlutterLogo(),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _openCWindow() {
+    WindowContainer.of(context).open(
+      WindowConfiguration(
+        title: 'C Window',
+        size: Size(400, 400),
+        builder: (_) {
+          return _DesktopWindowBackground();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -23,24 +74,18 @@ class _DesktopWindowState extends State<DesktopWindow> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ElevatedButton(
-                child: Text('open'),
-                onPressed: () {
-                  WindowContainer.of(context).open(
-                    WindowConfiguration(
-                      title: '测试测试测试测试',
-                      builder: (_) {
-                        return Container(
-                          child: ElevatedButton(
-                            child: Text('Button'),
-                            onPressed: () {
-                              print('test');
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
+                child: Text('AWindow'),
+                onPressed: _openAWindow,
+              ),
+              SizedBox(height: 12.0),
+              ElevatedButton(
+                child: Text('BWindow'),
+                onPressed: _openBWindow,
+              ),
+              SizedBox(height: 12.0),
+              ElevatedButton(
+                child: Text('CWindow'),
+                onPressed: _openCWindow,
               ),
             ],
           ),

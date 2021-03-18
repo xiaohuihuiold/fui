@@ -66,6 +66,21 @@ class WindowConfiguration extends ChangeNotifier {
   /// 是否可更改大小
   final bool resizeable;
 
+  /// 是否需要动画
+  final bool needAnimation;
+
+  /// 是否完成动画
+  bool _isAnimationCompleted = true;
+
+  bool get isAnimationCompleted => _isAnimationCompleted;
+
+  set isAnimationCompleted(bool value) {
+    if (_isAnimationCompleted != value) {
+      _isAnimationCompleted = value;
+      notifyListeners();
+    }
+  }
+
   /// 窗口组
   String _group;
 
@@ -163,6 +178,7 @@ class WindowConfiguration extends ChangeNotifier {
     bool hasMaximize = true,
     bool hasMinimize = true,
     bool resizeable = true,
+    bool needAnimation = true,
     WindowSizeMode? sizeMode,
     Offset? position,
     Size? size,
@@ -178,6 +194,7 @@ class WindowConfiguration extends ChangeNotifier {
       hasMaximize: hasMaximize,
       hasMinimize: hasMinimize,
       resizeable: resizeable,
+      needAnimation: false,
       sizeMode: sizeMode,
       position: position,
       size: size,
@@ -195,6 +212,7 @@ class WindowConfiguration extends ChangeNotifier {
     this.hasMaximize = true,
     this.hasMinimize = true,
     this.resizeable = true,
+    this.needAnimation = true,
     WindowSizeMode? sizeMode,
     Offset? position,
     Size? size,
@@ -243,6 +261,9 @@ class WindowConfiguration extends ChangeNotifier {
 
   /// 最大化
   void maximize() {
+    if (needAnimation) {
+      _isAnimationCompleted = false;
+    }
     if (_sizeMode != WindowSizeMode.max) {
       // 记录当前窗口状态
       _maxSizeMode = _sizeMode;
@@ -269,10 +290,15 @@ class WindowConfiguration extends ChangeNotifier {
 
   /// 最小化之前的模式
   WindowSizeMode? _minSizeMode;
+
+  WindowSizeMode? get minSizeMode => _minSizeMode;
   Rect? _minRect;
 
   /// 最小化
   void minimize() {
+    if (needAnimation) {
+      _isAnimationCompleted = false;
+    }
     if (_sizeMode != WindowSizeMode.min) {
       // 记录当前窗口状态
       _minSizeMode = _sizeMode;
@@ -304,6 +330,7 @@ class WindowConfigureData extends InheritedWidget {
 
   @override
   bool updateShouldNotify(WindowConfigureData old) {
-    return data != old.data;
+    // TODO: 需要优化
+    return true;
   }
 }
