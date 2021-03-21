@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../container/window_container_theme.dart';
 import '../storage/local_storage.dart';
 
 /// 主题状态
 class ThemeProvider extends ChangeNotifier {
-  ThemeData? get darkTheme => isDark == null ? ThemeData.dark() : null;
-
-  ThemeData get theme => isDark == true ? ThemeData.dark() : ThemeData.light();
+  WindowContainerThemeData get theme => isDark == true
+      ? WindowContainerThemeData.dark()
+      : WindowContainerThemeData.light();
 
   bool? get isDark => LocalStorage.theme.isDark;
 

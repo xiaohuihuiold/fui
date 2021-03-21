@@ -29,10 +29,10 @@ class _FlutterUiState extends State<FlutterUi> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'FUI',
-      darkTheme: themeProvider.darkTheme,
-      theme: themeProvider.theme,
       home: Scaffold(
-        body: WindowContainer(),
+        body: WindowContainer(
+          theme: themeProvider.theme,
+        ),
       ),
     );
   }

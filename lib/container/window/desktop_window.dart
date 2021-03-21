@@ -3,6 +3,8 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+import '../../provider/theme_provider.dart';
 import '../window_container.dart';
 
 /// 桌面窗口,始终位于最底层
@@ -13,8 +15,9 @@ class DesktopWindow extends StatefulWidget {
 
 class _DesktopWindowState extends State<DesktopWindow> {
   void _openAWindow() {
+    ThemeProvider.read(context).isDark=true;
     WindowContainer.of(context).open(
-      WindowConfiguration(
+      WindowConfigureData(
         title: 'A Window',
         size: Size(500, 300),
         builder: (_) {
@@ -35,7 +38,7 @@ class _DesktopWindowState extends State<DesktopWindow> {
 
   void _openBWindow() {
     WindowContainer.of(context).open(
-      WindowConfiguration(
+      WindowConfigureData(
         title: 'B Window',
         size: Size(150, 150),
         builder: (_) {
@@ -53,7 +56,7 @@ class _DesktopWindowState extends State<DesktopWindow> {
 
   void _openCWindow() {
     WindowContainer.of(context).open(
-      WindowConfiguration(
+      WindowConfigureData(
         title: 'C Window',
         size: Size(400, 400),
         builder: (_) {
@@ -68,7 +71,7 @@ class _DesktopWindowState extends State<DesktopWindow> {
     return Stack(
       fit: StackFit.passthrough,
       children: [
-        _DesktopWindowBackground(),
+        // _DesktopWindowBackground(),
         Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,

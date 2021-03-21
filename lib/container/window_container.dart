@@ -8,23 +8,32 @@ import 'package:uuid/uuid.dart';
 import 'window/decorated_window.dart';
 import 'window/desktop_window.dart';
 import 'window/task_bar_window.dart';
+import 'window_container_theme.dart';
 
 part 'window_configuration.dart';
 
 /// 窗口容器对外接口
 abstract class WindowContainerController {
   /// 请求窗口焦点
-  void focus(WindowConfiguration window);
+  void focus(WindowConfigureData window);
 
   /// 打开新的窗口
-  Future<T?> open<T>(WindowConfiguration window);
+  Future<T?> open<T>(WindowConfigureData window);
 
   /// 关闭窗口
-  void close(WindowConfiguration window);
+  void close(WindowConfigureData window);
 }
 
 /// 窗口容器
 class WindowContainer extends StatefulWidget {
+  /// 容器主题
+  final WindowContainerThemeData theme;
+
+  const WindowContainer({
+    Key? key,
+    this.theme = const WindowContainerThemeData(),
+  }) : super(key: key);
+
   @override
   WindowContainerState createState() => WindowContainerState();
 
@@ -61,14 +70,14 @@ class WindowContainer extends StatefulWidget {
 class WindowContainerState extends State<WindowContainer>
     implements WindowContainerController {
   /// 所有显示窗口
-  final List<WindowConfiguration> _windows = [];
+  final List<WindowConfigureData> _windows = [];
 
   /// 窗口分组
-  final Map<String, List<WindowConfiguration>> _windowGroups = {};
+  final Map<String, List<WindowConfigureData>> _windowGroups = {};
 
   /// 创建桌面组件
-  WindowConfiguration _createDesktop() {
-    return WindowConfiguration._type(
+  WindowConfigureData _createDesktop() {
+    return WindowConfigureData._type(
       type: WindowType.desktop,
       title: 'desktop',
       canChanged: false,
@@ -80,8 +89,8 @@ class WindowContainerState extends State<WindowContainer>
   }
 
   /// 创建任务栏组件
-  WindowConfiguration _createTaskBar() {
-    return WindowConfiguration._type(
+  WindowConfigureData _createTaskBar() {
+    return WindowConfigureData._type(
       type: WindowType.task_bar,
       title: 'task_bar',
       canChanged: false,
@@ -98,7 +107,7 @@ class WindowContainerState extends State<WindowContainer>
 
   /// 设置窗口焦点并置顶,只对普通窗口有用
   @override
-  void focus(WindowConfiguration window) {
+  void focus(WindowConfigureData window) {
     if (window.indexMode != WindowIndexMode.normal) {
       return;
     }
@@ -121,7 +130,7 @@ class WindowContainerState extends State<WindowContainer>
 
   /// 打开新窗口并添加到顶层
   @override
-  Future<T?> open<T>(WindowConfiguration window) {
+  Future<T?> open<T>(WindowConfigureData window) {
     // 添加状态改变监听
     window.addListener(_onWindowChanged);
     if (window.type == WindowType.normal) {
@@ -163,7 +172,7 @@ class WindowContainerState extends State<WindowContainer>
 
   /// 关闭指定窗口
   @override
-  void close(WindowConfiguration window) {
+  void close(WindowConfigureData window) {
     // 移除状态改变监听
     window.removeListener(_onWindowChanged);
     _windowGroups[window.group]?.remove(window);
@@ -185,12 +194,12 @@ class WindowContainerState extends State<WindowContainer>
   /// 根据窗口配置生成widget
   List<Widget> _extractChildren() {
     return [
-      for (WindowConfiguration window in _windows)
+      for (WindowConfigureData window in _windows)
         _WindowOverlay(
           key: window._key,
           window: window,
-          child: WindowConfigureData(
-            data: window,
+          child: WindowConfiguration(
+            window: window,
             child: _WindowDecorated(
               onFocused: (window) => focus(window),
             ),
@@ -210,48 +219,52 @@ class WindowContainerState extends State<WindowContainer>
 
   @override
   Widget build(BuildContext context) {
-    return WindowContainerData(
-      windows: _windows,
-      groups: _windowGroups,
-      child: _WindowStack(
+    return WindowContainerTheme(
+      theme: widget.theme,
+      child: WindowContainerStatus(
         windows: _windows,
-        children: _extractChildren(),
+        groups: _windowGroups,
+        child: _WindowStack(
+          windows: _windows,
+          children: _extractChildren(),
+        ),
       ),
     );
   }
 }
 
 /// 窗口容器状态数据
-class WindowContainerData extends InheritedWidget {
+class WindowContainerStatus extends InheritedWidget {
   /// 顶层窗口
-  final WindowConfiguration? _topWindow;
+  final WindowConfigureData? _topWindow;
 
-  WindowConfiguration? get topWindow => _topWindow;
+  WindowConfigureData? get topWindow => _topWindow;
 
   /// 所有显示窗口
-  final List<WindowConfiguration> _windows;
+  final List<WindowConfigureData> _windows;
 
-  List<WindowConfiguration> get windows => _windows;
+  List<WindowConfigureData> get windows => _windows;
 
   /// 窗口分组
-  final Map<String, List<WindowConfiguration>> _groups;
+  final Map<String, List<WindowConfigureData>> _groups;
 
-  Map<String, List<WindowConfiguration>> get groups => _groups;
-  final List<MapEntry<String, List<WindowConfiguration>>> groupList;
+  Map<String, List<WindowConfigureData>> get groups => _groups;
+  final List<MapEntry<String, List<WindowConfigureData>>> groupList;
 
-  WindowContainerData({
+  WindowContainerStatus({
     Key? key,
-    required List<WindowConfiguration> windows,
-    required Map<String, List<WindowConfiguration>> groups,
+    required List<WindowConfigureData> windows,
+    required Map<String, List<WindowConfigureData>> groups,
     required Widget child,
-  })   : _windows = List<WindowConfiguration>.from(windows),
+  })   : _windows = List<WindowConfigureData>.from(windows),
         _topWindow = _findTopWindow(windows),
-        _groups = Map<String, List<WindowConfiguration>>.from(groups),
+        _groups = Map<String, List<WindowConfigureData>>.from(groups),
         groupList = groups.entries.toList(),
         super(key: key, child: child);
 
-  static WindowConfiguration? _findTopWindow(
-      List<WindowConfiguration> windows) {
+  /// 查找顶层普通窗口
+  static WindowConfigureData? _findTopWindow(
+      List<WindowConfigureData> windows) {
     try {
       return windows
           .lastWhere((window) => window.indexMode == WindowIndexMode.normal);
@@ -260,25 +273,26 @@ class WindowContainerData extends InheritedWidget {
     }
   }
 
-  static WindowContainerData of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<WindowContainerData>()!;
+  static WindowContainerStatus of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<WindowContainerStatus>()!;
   }
 
   @override
-  bool updateShouldNotify(WindowContainerData old) {
+  bool updateShouldNotify(WindowContainerStatus old) {
     // TODO: 需要优化
     return true;
   }
 }
 
-typedef OnWindowFocused = void Function(WindowConfiguration window);
+/// 窗口焦点回调
+typedef OnWindowFocused = void Function(WindowConfigureData window);
 
 /// 窗口装饰
 class _WindowDecorated extends StatefulWidget {
   /// 动画时间
   final Duration duration;
 
-  /// 获取窗口焦点
+  /// 窗口焦点回调
   final OnWindowFocused onFocused;
 
   const _WindowDecorated({
@@ -293,8 +307,8 @@ class _WindowDecorated extends StatefulWidget {
 
 class __WindowDecoratedState extends State<_WindowDecorated>
     with TickerProviderStateMixin {
-  AnimationController? _controller;
-  late WindowConfiguration _window;
+  late AnimationController _controller;
+  late WindowConfigureData _window;
 
   /// 记录上一次模式,用以判断是否改变
   WindowSizeMode? _oldSizeMode;
@@ -304,6 +318,9 @@ class __WindowDecoratedState extends State<_WindowDecorated>
 
   /// 当前值,过渡用
   double _value = 0.0;
+
+  /// 变换矩阵
+  Matrix4 _matrix4 = Matrix4.identity();
 
   /// 更新动画状态,一帧执行完再更新
   void _updateStatus(bool isCompleted) {
@@ -331,17 +348,22 @@ class __WindowDecoratedState extends State<_WindowDecorated>
   }
 
   /// 初始化动画
-  void _initAnimation() {
-    _controller?.dispose();
+  void _initAnimation([bool isFirst = false]) {
+    if (!isFirst) {
+      _controller.dispose();
+    }
     _controller = AnimationController(
       duration: widget.duration,
       vsync: this,
     );
-    _controller!.addListener(() {
-      _value = _controller!.value;
+    _controller.addListener(() {
+      _value = _controller.value;
+      _matrix4.setIdentity();
+      _matrix4.setEntry(3, 2, 0.001);
+      _matrix4.rotateX(((45.0 - (45.0 * _value)) / 180) * pi);
       setState(() {});
     });
-    _controller!.addStatusListener(_updateAnimationStatus);
+    _controller.addStatusListener(_updateAnimationStatus);
   }
 
   /// 播放动画
@@ -350,21 +372,21 @@ class __WindowDecoratedState extends State<_WindowDecorated>
     _stopAnimation();
     _updateStatus(false);
     if (!isReverse) {
-      _controller!.forward(from: _value);
+      _controller.forward(from: _value);
     } else {
-      _controller!.reverse(from: _value);
+      _controller.reverse(from: _value);
     }
   }
 
   /// 停止动画
   void _stopAnimation() {
-    _controller!.stop();
+    _controller.stop();
   }
 
   @override
   void initState() {
     super.initState();
-    _initAnimation();
+    _initAnimation(true);
   }
 
   @override
@@ -379,7 +401,7 @@ class __WindowDecoratedState extends State<_WindowDecorated>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _window = WindowConfigureData.of(context).data;
+    _window = WindowConfiguration.of(context);
     // 发送改变时再执行
     if (_window.sizeMode != _oldSizeMode) {
       // 是否需要动画
@@ -410,7 +432,7 @@ class __WindowDecoratedState extends State<_WindowDecorated>
   @override
   void dispose() {
     _stopAnimation();
-    _controller!.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -423,21 +445,17 @@ class __WindowDecoratedState extends State<_WindowDecorated>
 
   @override
   Widget build(BuildContext context) {
-    WindowConfiguration window = WindowConfigureData.of(context).data;
     Widget result = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onPanDown: (_) => widget.onFocused(window),
+      onPanDown: (_) => widget.onFocused(_window),
       child: DecoratedWindow(),
     );
-    if (window.needAnimation) {
-      Matrix4 matrix4 = Matrix4.identity();
-      matrix4.setEntry(3, 2, 0.001);
-      matrix4.rotateX(((45.0 - (45.0 * _controller!.value)) / 180) * pi);
+    if (_window.needAnimation) {
       result = Transform(
         alignment: Alignment.topCenter,
-        transform: matrix4,
+        transform: _matrix4,
         child: Opacity(
-          opacity: _controller!.value,
+          opacity: _controller.value,
           child: result,
         ),
       );
@@ -451,7 +469,7 @@ class __WindowDecoratedState extends State<_WindowDecorated>
 /// 使用叠加层是为了使layout和paint作用范围限制到窗口内
 class _WindowOverlay extends SingleChildRenderObjectWidget {
   /// 窗口配置
-  final WindowConfiguration window;
+  final WindowConfigureData window;
 
   /// 窗口组件
   final Widget child;
@@ -476,10 +494,10 @@ class _WindowOverlay extends SingleChildRenderObjectWidget {
 
 class _RenderWindowOverlay extends RenderBox
     with RenderObjectWithChildMixin<RenderBox> {
-  WindowConfiguration _window;
+  WindowConfigureData _window;
 
   /// 对象变化或者值改变则relayout
-  set window(WindowConfiguration value) {
+  set window(WindowConfigureData value) {
     if (_window != value || _window._changed) {
       _window = value;
       _window._changed = false;
@@ -488,7 +506,7 @@ class _RenderWindowOverlay extends RenderBox
   }
 
   _RenderWindowOverlay({
-    required WindowConfiguration window,
+    required WindowConfigureData window,
   }) : _window = window;
 
   /// 设置repaint区域
@@ -622,7 +640,7 @@ class _RenderWindowOverlay extends RenderBox
 /// 窗口绘制组件
 class _WindowStack extends MultiChildRenderObjectWidget {
   /// 窗口配置
-  final List<WindowConfiguration> windows;
+  final List<WindowConfigureData> windows;
 
   _WindowStack({
     Key? key,
@@ -646,7 +664,7 @@ class _WindowStack extends MultiChildRenderObjectWidget {
 
 /// 组件数据
 class _WindowStackParentData extends ContainerBoxParentData<RenderBox> {
-  late WindowConfiguration window;
+  late WindowConfigureData window;
 
   /// 任务栏区域
   Rect taskBarRect = Rect.zero;
@@ -657,10 +675,10 @@ class _RenderWindowStack extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, _WindowStackParentData>,
         RenderBoxContainerDefaultsMixin<RenderBox, _WindowStackParentData> {
-  List<WindowConfiguration> _windows;
+  List<WindowConfigureData> _windows;
 
   /// 当数量和对象有一个改变时重绘
-  set windows(List<WindowConfiguration> value) {
+  set windows(List<WindowConfigureData> value) {
     if (_isWindowsChanged(_windows, value)) {
       _windows = value;
       markNeedsLayout();
@@ -668,12 +686,12 @@ class _RenderWindowStack extends RenderBox
   }
 
   _RenderWindowStack({
-    required List<WindowConfiguration> windows,
+    required List<WindowConfigureData> windows,
   }) : _windows = windows;
 
   /// 检查是否改变数组对象
-  bool _isWindowsChanged(List<WindowConfiguration> oldWindows,
-      List<WindowConfiguration> newWindows) {
+  bool _isWindowsChanged(List<WindowConfigureData> oldWindows,
+      List<WindowConfigureData> newWindows) {
     if (oldWindows.length != newWindows.length) {
       return true;
     }
@@ -686,6 +704,9 @@ class _RenderWindowStack extends RenderBox
     }
     return changed;
   }
+
+  @override
+  bool get isRepaintBoundary => true;
 
   @override
   bool get sizedByParent => true;
@@ -708,7 +729,7 @@ class _RenderWindowStack extends RenderBox
     Rect taskBarRect = Rect.zero;
     RenderBox? child = firstChild;
     while (child != null) {
-      final WindowConfiguration window = _windows[i];
+      final WindowConfigureData window = _windows[i];
       if (window.type == WindowType.task_bar) {
         taskChild = child;
         final _WindowStackParentData taskChildParentData =
@@ -728,7 +749,7 @@ class _RenderWindowStack extends RenderBox
     i = 0;
     child = firstChild;
     while (child != null) {
-      final WindowConfiguration window = _windows[i];
+      final WindowConfigureData window = _windows[i];
       if (window.type != WindowType.task_bar) {
         // 跳过任务栏
         final _WindowStackParentData childParentData =
