@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// TODO: 主题完善
 /// 容器主题
 class WindowContainerThemeData {
   /// 窗口背景色
@@ -28,6 +29,7 @@ class WindowContainerThemeData {
   }
 }
 
+/// 容器主题共享
 class WindowContainerTheme extends InheritedWidget {
   final WindowContainerThemeData theme;
 
