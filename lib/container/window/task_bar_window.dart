@@ -57,15 +57,15 @@ class _TaskBarWindowList extends StatefulWidget {
 class __TaskBarWindowListState extends State<_TaskBarWindowList> {
   @override
   Widget build(BuildContext context) {
-    WindowContainerData windowContainerData = WindowContainerData.of(context);
+    WindowContainerStatus windowContainerStatus = WindowContainerStatus.of(context);
     return ListView.builder(
       scrollDirection: Axis.horizontal,
-      itemCount: windowContainerData.groupList.length,
+      itemCount: windowContainerStatus.groupList.length,
       itemBuilder: (_, index) {
-        MapEntry<String, List<WindowConfiguration>> group =
-            windowContainerData.groupList[index];
+        MapEntry<String, List<WindowConfigureData>> group =
+            windowContainerStatus.groupList[index];
         bool focused = group.value.indexWhere(
-                (window) => window == windowContainerData.topWindow) !=
+                (window) => window == windowContainerStatus.topWindow) !=
             -1;
         return Padding(
           padding: const EdgeInsets.all(4.0),

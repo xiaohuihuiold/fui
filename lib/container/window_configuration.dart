@@ -40,7 +40,7 @@ enum WindowIndexMode {
 }
 
 /// 窗口配置
-class WindowConfiguration extends ChangeNotifier {
+class WindowConfigureData extends ChangeNotifier {
   Key _key = UniqueKey();
 
   /// 是否已经改变
@@ -146,10 +146,15 @@ class WindowConfiguration extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 窗口区域
+  /// 是否含有位置
+  ///
+  /// 用于第一次打开窗口时判断居中
   bool _hasPosition;
+
+  /// 记录初次打开窗口大小,后续不能小于此大小
   Size? _firstSize;
 
+  /// 窗口区域
   Rect _rect;
 
   Rect get rect => _rect;
@@ -160,6 +165,7 @@ class WindowConfiguration extends ChangeNotifier {
     }
     if (_rect != value) {
       _rect = value;
+      // 主动设置区域则有位置
       _hasPosition = true;
       notifyListeners();
     }
@@ -168,7 +174,7 @@ class WindowConfiguration extends ChangeNotifier {
   /// 组件构造器
   final WidgetBuilder builder;
 
-  factory WindowConfiguration._type({
+  factory WindowConfigureData._type({
     required WindowType type,
     required String title,
     String? group,
@@ -178,14 +184,13 @@ class WindowConfiguration extends ChangeNotifier {
     bool hasMaximize = true,
     bool hasMinimize = true,
     bool resizeable = true,
-    bool needAnimation = true,
     WindowSizeMode? sizeMode,
     Offset? position,
     Size? size,
     WindowIndexMode? indexMode,
     required WidgetBuilder builder,
   }) {
-    return WindowConfiguration(
+    return WindowConfigureData(
       title: title,
       group: group,
       color: color,
@@ -203,7 +208,7 @@ class WindowConfiguration extends ChangeNotifier {
     ).._type = type;
   }
 
-  WindowConfiguration({
+  WindowConfigureData({
     required String title,
     String? group,
     Color? color,
@@ -315,21 +320,21 @@ class WindowConfiguration extends ChangeNotifier {
 }
 
 /// 共享当前窗口设置
-class WindowConfigureData extends InheritedWidget {
-  final WindowConfiguration data;
+class WindowConfiguration extends InheritedWidget {
+  final WindowConfigureData window;
 
-  const WindowConfigureData({
+  const WindowConfiguration({
     Key? key,
     required Widget child,
-    required this.data,
+    required this.window,
   }) : super(key: key, child: child);
 
   static WindowConfigureData of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<WindowConfigureData>()!;
+    return context.dependOnInheritedWidgetOfExactType<WindowConfiguration>()!.window;
   }
 
   @override
-  bool updateShouldNotify(WindowConfigureData old) {
+  bool updateShouldNotify(WindowConfiguration old) {
     // TODO: 需要优化
     return true;
   }

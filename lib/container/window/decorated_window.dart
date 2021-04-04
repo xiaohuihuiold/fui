@@ -2,17 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../window_container.dart';
 
-class DecoratedWindowContentDelegate extends SingleChildLayoutDelegate {
-  @override
-  bool shouldRelayout(covariant SingleChildLayoutDelegate oldDelegate) => true;
-
-  @override
-  BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
-    print(constraints);
-    return super.getConstraintsForChild(constraints);
-  }
-}
-
 /// 装饰窗口,对窗口进行添加边框样式等操作
 class DecoratedWindow extends StatelessWidget {
   const DecoratedWindow({
@@ -22,8 +11,8 @@ class DecoratedWindow extends StatelessWidget {
   /// 包裹装饰
   Widget _wrapDecoration(
     BuildContext context,
-    WindowConfiguration window,
-    WindowContainerData windowContainer,
+    WindowConfigureData window,
+    WindowContainerStatus windowContainer,
     Widget result,
   ) {
     // 边距
@@ -75,8 +64,8 @@ class DecoratedWindow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    WindowConfiguration window = WindowConfigureData.of(context).data;
-    WindowContainerData windowContainer = WindowContainerData.of(context);
+    WindowConfigureData window = WindowConfiguration.of(context);
+    WindowContainerStatus windowContainer = WindowContainerStatus.of(context);
     Widget result = window.builder(context);
     if (window.hasDecoration) {
       result = _wrapDecoration(context, window, windowContainer, result);
@@ -89,7 +78,7 @@ class DecoratedWindow extends StatelessWidget {
 class DecoratedWindowTitleBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    WindowConfiguration window = WindowConfigureData.of(context).data;
+    WindowConfigureData window = WindowConfiguration.of(context);
     return Container(
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(vertical: 2.0),
@@ -170,7 +159,7 @@ class DecoratedWindowDraggable extends StatelessWidget {
 
   /// 拖动窗口,如果是全屏,则不能拖动
   void _drag(BuildContext context, Offset delta) {
-    WindowConfiguration window = WindowConfigureData.of(context).data;
+    WindowConfigureData window = WindowConfiguration.of(context);
     if (window.sizeMode != WindowSizeMode.max) {
       window.drag(delta);
     }
@@ -207,7 +196,7 @@ class _DecoratedWindowResizeableState extends State<DecoratedWindowResizeable> {
   MouseCursor _cursor = MouseCursor.defer;
 
   /// 设置当前缩放方向
-  void _setScaleDir(WindowConfiguration window, Offset position) {
+  void _setScaleDir(WindowConfigureData window, Offset position) {
     _resizeLeft = false;
     _resizeRight = false;
     _resizeBottom = false;
@@ -227,7 +216,7 @@ class _DecoratedWindowResizeableState extends State<DecoratedWindowResizeable> {
 
   @override
   Widget build(BuildContext context) {
-    WindowConfiguration window = WindowConfigureData.of(context).data;
+    WindowConfigureData window = WindowConfiguration.of(context);
     return MouseRegion(
       cursor: _cursor,
       onExit: (_) {
