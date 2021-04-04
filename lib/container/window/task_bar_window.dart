@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fui/container/window_container_theme.dart';
 
 import '../window_container.dart';
 
@@ -13,6 +14,7 @@ class TaskBarWindow extends StatefulWidget {
 class _TaskBarWindowState extends State<TaskBarWindow> {
   @override
   Widget build(BuildContext context) {
+    WindowContainerThemeData theme = WindowContainerTheme.of(context);
     // 任务栏分隔
     Widget result = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -23,7 +25,7 @@ class _TaskBarWindowState extends State<TaskBarWindow> {
     );
     return Container(
       height: kTaskBarHeight,
-      color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.8),
+      color: theme.shadowColor.withOpacity(0.8),
       child: result,
     );
   }
@@ -88,9 +90,24 @@ class __TaskBarWindowListState extends State<_TaskBarWindowList> {
               alignment: Alignment.center,
               padding: const EdgeInsets.all(4.0),
               decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4.0),
                 color: focused ? Colors.white60 : Colors.black26,
               ),
-              child: Text(application.applicationName),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (application.icon != null ||
+                      application.iconUrl != null) ...[
+                    Icon(
+                      application.icon,
+                      color: Colors.blue,
+                    ),
+                    SizedBox(width: 4.0),
+                  ],
+                  Text(application.applicationName),
+                ],
+              ),
             ),
           ),
         );

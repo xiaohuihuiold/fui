@@ -17,6 +17,13 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool get showWallpaper => LocalStorage.theme.showWallpaper;
+
+  set showWallpaper(bool value) {
+    LocalStorage.theme.showWallpaper = value;
+    notifyListeners();
+  }
+
   static ThemeProvider read(BuildContext context) =>
       context.read<ThemeProvider>();
 

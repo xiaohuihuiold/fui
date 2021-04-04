@@ -7,6 +7,7 @@ import 'container/window_container.dart';
 
 import 'application/note/note_application.dart';
 import 'application/setting/setting_application.dart';
+import 'application/post/post_application.dart';
 
 void main() {
   runApp(
@@ -29,6 +30,7 @@ class _FlutterUiState extends State<FlutterUi> {
   List<WindowApplicationManifest> _applications = [
     settingApplication,
     noteApplication,
+    postApplication,
   ];
 
   @override

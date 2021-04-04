@@ -17,14 +17,20 @@ class WindowApplicationManifest {
   /// 应用名称
   final String applicationName;
 
-  /// 构造器
-  final WindowApplicationDataBuilder builder;
+  /// 应用图标
+  final IconData? icon;
+  final String? iconUrl;
+
+  /// 窗口
+  final Map<String, WindowBuilder> windows;
 
   WindowApplicationManifest({
     this.showInDesktop = false,
     required this.applicationId,
+    required this.windows,
     required this.applicationName,
-    required this.builder,
+    this.icon,
+    this.iconUrl,
   });
 }
 
@@ -37,26 +43,37 @@ abstract class WindowApplicationController {
 /// 窗口应用数据
 class WindowApplicationData implements WindowApplicationController {
   /// 是否展示桌面图标
-  late bool showInDesktop;
+  final bool showInDesktop;
 
   /// 应用id
-  late String applicationId;
+  final String applicationId;
 
   /// 应用名称
-  late String applicationName;
+  final String applicationName;
+
+  /// 应用图标
+  final IconData? icon;
+  final String? iconUrl;
 
   /// 窗口
   final Map<String, WindowBuilder> windows;
 
   /// 任务id
-  late String taskId;
+  final String taskId;
 
   /// 容器
-  late WindowContainerState _state;
+  final WindowContainerState _state;
 
   WindowApplicationData({
+    required this.showInDesktop,
+    required this.applicationId,
+    required this.applicationName,
     required this.windows,
-  });
+    required this.taskId,
+    this.icon,
+    this.iconUrl,
+    required WindowContainerState state,
+  }) : _state = state;
 
   @override
   Future<T?> open<T>(String name, {dynamic arguments}) {

@@ -68,10 +68,11 @@ class _DesktopWindowState extends State<DesktopWindow> {
 
   @override
   Widget build(BuildContext context) {
+    ThemeProvider themeProvider = ThemeProvider.watch(context);
     return Stack(
       fit: StackFit.passthrough,
       children: [
-        // _DesktopWindowBackground(),
+        if (themeProvider.showWallpaper) _DesktopWindowBackground(),
         _DesktopWindowApplications(),
       ],
     );
@@ -211,6 +212,7 @@ class _DesktopWindowApplications extends StatelessWidget {
     WindowContainerThemeData theme = WindowContainerTheme.of(context);
     return GridView.builder(
       itemCount: status.applications.length,
+      scrollDirection: Axis.horizontal,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate:
           SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 10),
@@ -228,7 +230,13 @@ class _DesktopWindowApplications extends StatelessWidget {
               children: [
                 Expanded(
                   flex: 4,
-                  child: FlutterLogo(),
+                  child: application.icon != null
+                      ? Icon(
+                          application.icon,
+                          size: 48.0,
+                          color: Colors.blue,
+                        )
+                      : FlutterLogo(),
                 ),
                 Expanded(
                   flex: 1,

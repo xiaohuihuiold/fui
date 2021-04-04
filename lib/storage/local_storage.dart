@@ -3,6 +3,7 @@ import 'dart:html';
 /// 浏览器本地存储
 class LocalStorage {
   static _ThemeStorage theme = _ThemeStorage();
+  static _NoteStorage note = _NoteStorage();
   static Storage _storage = window.localStorage;
 
   /// 当前设置所属
@@ -101,4 +102,17 @@ class _ThemeStorage extends _BaseStorage {
   bool? get isDark => storage.getBool('is_dark');
 
   set isDark(bool? value) => storage.putBool('is_dark', value);
+
+  bool get showWallpaper => storage.getBool('show_wallpaper') != false;
+
+  set showWallpaper(bool value) => storage.putBool('show_wallpaper', value);
+}
+
+/// 笔记存储
+class _NoteStorage extends _BaseStorage {
+  _NoteStorage() : super('note');
+
+  String? get text => storage.getString('text');
+
+  set text(String? value) => storage.putString('text', value);
 }

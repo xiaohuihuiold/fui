@@ -158,12 +158,16 @@ class WindowContainerState extends State<WindowContainer>
     if (manifest == null) {
       return Future<T>.value(null);
     }
-    WindowApplicationData applicationData = manifest.builder();
-    applicationData.taskId = Uuid().v4();
-    applicationData.showInDesktop = manifest.showInDesktop;
-    applicationData.applicationId = manifest.applicationId;
-    applicationData.applicationName = manifest.applicationName;
-    applicationData._state = this;
+    WindowApplicationData applicationData = WindowApplicationData(
+      showInDesktop: manifest.showInDesktop,
+      applicationId: manifest.applicationId,
+      applicationName: manifest.applicationName,
+      windows: manifest.windows,
+      taskId: Uuid().v4(),
+      icon: manifest.icon,
+      iconUrl: manifest.iconUrl,
+      state: this,
+    );
     _applicationTasks[applicationData.taskId] = applicationData;
     return applicationData.open('main');
   }
@@ -248,6 +252,7 @@ class WindowContainerState extends State<WindowContainer>
       );
       if (_applicationTasks[window.group] != null) {
         result = WindowApplication(
+          key: window._key,
           application: _applicationTasks[window.group]!,
           child: result,
         );
@@ -469,6 +474,7 @@ class __WindowDecoratedState extends State<_WindowDecorated>
   @override
   void initState() {
     super.initState();
+    print('init');
     _initAnimation(true);
   }
 

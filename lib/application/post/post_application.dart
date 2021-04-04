@@ -1,19 +1,16 @@
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
-
 import '../../container/window_container.dart';
 import 'main_window.dart';
 
-final noteApplication = WindowApplicationManifest(
+final postApplication = WindowApplicationManifest(
   showInDesktop: true,
-  applicationId: 'note',
-  applicationName: '笔记',
-  icon: Icons.note,
+  applicationId: 'post',
+  applicationName: '文章',
   windows: {
     'main': (_) => WindowConfigureData(
-          title: '笔记',
-          size: Size(500, 500),
+          title: '文章',
+          size: Size(500, 400),
           builder: (_) => MainWindow(),
         ),
   },
