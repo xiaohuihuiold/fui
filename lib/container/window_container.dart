@@ -31,8 +31,7 @@ class WindowContainer extends StatefulWidget {
   /// 根据[context]查找最近的容器,如果[rootContainer]为true则查找根容器
   ///
   /// 参考[Navigator.of]
-  static WindowContainerController of(
-    BuildContext context, {
+  static WindowContainerController of(BuildContext context, {
     bool rootContainer = false,
   }) {
     WindowContainerState? container;
@@ -133,19 +132,19 @@ class WindowContainerState extends State<WindowContainer>
     int index = 0;
     switch (window.indexMode) {
       case WindowIndexMode.top:
-        // 查找最后一个顶层
+      // 查找最后一个顶层
         index = _windows.indexWhere((window) =>
-            window.indexMode == WindowIndexMode.top &&
+        window.indexMode == WindowIndexMode.top &&
             window.type == WindowType.task_bar);
         break;
       case WindowIndexMode.bottom:
-        // 查找最后一个底层
+      // 查找最后一个底层
         index = _windows
             .indexWhere((window) => window.indexMode != WindowIndexMode.bottom);
         index += index != -1 ? 1 : 0;
         break;
       case WindowIndexMode.normal:
-        // 查找第一个顶层
+      // 查找第一个顶层
         index = _windows
             .indexWhere((window) => window.indexMode == WindowIndexMode.top);
         break;
@@ -244,7 +243,8 @@ class WindowContainerData extends InheritedWidget {
     required List<WindowConfiguration> windows,
     required Map<String, List<WindowConfiguration>> groups,
     required Widget child,
-  })   : _windows = List<WindowConfiguration>.from(windows),
+  })
+      : _windows = List<WindowConfiguration>.from(windows),
         _topWindow = _findTopWindow(windows),
         _groups = Map<String, List<WindowConfiguration>>.from(groups),
         groupList = groups.entries.toList(),
@@ -379,7 +379,9 @@ class __WindowDecoratedState extends State<_WindowDecorated>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _window = WindowConfigureData.of(context).data;
+    _window = WindowConfigureData
+        .of(context)
+        .data;
     // 发送改变时再执行
     if (_window.sizeMode != _oldSizeMode) {
       // 是否需要动画
@@ -388,7 +390,7 @@ class __WindowDecoratedState extends State<_WindowDecorated>
         if (_oldSizeMode == null || _window.sizeMode != WindowSizeMode.min) {
           // 最大化与非最小化切换
           if ((_window.sizeMode == WindowSizeMode.max &&
-                  _oldSizeMode != WindowSizeMode.min) ||
+              _oldSizeMode != WindowSizeMode.min) ||
               (_window.sizeMode != WindowSizeMode.min &&
                   _oldSizeMode == WindowSizeMode.max)) {
             _value = 0.0;
@@ -423,7 +425,9 @@ class __WindowDecoratedState extends State<_WindowDecorated>
 
   @override
   Widget build(BuildContext context) {
-    WindowConfiguration window = WindowConfigureData.of(context).data;
+    WindowConfiguration window = WindowConfigureData
+        .of(context)
+        .data;
     Widget result = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onPanDown: (_) => widget.onFocused(window),
@@ -468,8 +472,8 @@ class _WindowOverlay extends SingleChildRenderObjectWidget {
   }
 
   @override
-  void updateRenderObject(
-      BuildContext context, covariant _RenderWindowOverlay renderObject) {
+  void updateRenderObject(BuildContext context,
+      covariant _RenderWindowOverlay renderObject) {
     renderObject..window = window;
   }
 }
@@ -514,7 +518,7 @@ class _RenderWindowOverlay extends RenderBox
     // 只能用在[_WindowStack]
     assert(parentData is _WindowStackParentData);
     final _WindowStackParentData stackParentData =
-        parentData as _WindowStackParentData;
+    parentData as _WindowStackParentData;
     // 如果动画未执行完成则继续
     if (child == null ||
         (_window.sizeMode == WindowSizeMode.min &&
@@ -533,8 +537,8 @@ class _RenderWindowOverlay extends RenderBox
     }
     switch (sizeMode) {
       case WindowSizeMode.max:
-        // 最大化设置为显示尺寸
-        // 同时普通窗口会多减去任务栏的高度
+      // 最大化设置为显示尺寸
+      // 同时普通窗口会多减去任务栏的高度
         childConstraints = BoxConstraints.expand(
           width: size.width,
           height: size.height -
@@ -542,7 +546,7 @@ class _RenderWindowOverlay extends RenderBox
         );
         break;
       case WindowSizeMode.fixed:
-        // 固定值设置为配置的值
+      // 固定值设置为配置的值
         childConstraints = BoxConstraints.expand(
           width: _window.rect.width,
           height: _window.rect.height,
@@ -550,7 +554,7 @@ class _RenderWindowOverlay extends RenderBox
         break;
       case WindowSizeMode.auto:
       default:
-        // 靠子组件决定大小
+      // 靠子组件决定大小
         childConstraints = constraints.loosen();
         break;
     }
@@ -578,9 +582,9 @@ class _RenderWindowOverlay extends RenderBox
     }
     // 任务栏在底部,普通的就按照上面计算的位置来
     _window._rect = (isTaskBar
-            ? Offset(0.0, size.height - childSize.height)
-            : childOffset) &
-        childSize;
+        ? Offset(0.0, size.height - childSize.height)
+        : childOffset) &
+    childSize;
     _window._firstSize ??= childSize;
 
     // 设置位置
@@ -638,8 +642,8 @@ class _WindowStack extends MultiChildRenderObjectWidget {
   }
 
   @override
-  void updateRenderObject(
-      BuildContext context, covariant _RenderWindowStack renderObject) {
+  void updateRenderObject(BuildContext context,
+      covariant _RenderWindowStack renderObject) {
     renderObject..windows = windows;
   }
 }
@@ -712,7 +716,7 @@ class _RenderWindowStack extends RenderBox
       if (window.type == WindowType.task_bar) {
         taskChild = child;
         final _WindowStackParentData taskChildParentData =
-            taskChild.parentData as _WindowStackParentData;
+        taskChild.parentData as _WindowStackParentData;
         taskChildParentData.window = window;
         taskChild.layout(
           BoxConstraints.expand(width: size.width, height: size.height),
@@ -732,7 +736,7 @@ class _RenderWindowStack extends RenderBox
       if (window.type != WindowType.task_bar) {
         // 跳过任务栏
         final _WindowStackParentData childParentData =
-            child.parentData as _WindowStackParentData;
+        child.parentData as _WindowStackParentData;
         childParentData.taskBarRect = taskBarRect;
         childParentData.window = window;
         child.layout(
