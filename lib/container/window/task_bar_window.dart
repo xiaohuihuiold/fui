@@ -57,21 +57,31 @@ class _TaskBarWindowList extends StatefulWidget {
 class __TaskBarWindowListState extends State<_TaskBarWindowList> {
   @override
   Widget build(BuildContext context) {
-    WindowContainerStatus windowContainerStatus = WindowContainerStatus.of(context);
+    WindowContainerStatus windowContainerStatus =
+        WindowContainerStatus.of(context);
     return ListView.builder(
       scrollDirection: Axis.horizontal,
-      itemCount: windowContainerStatus.groupList.length,
+      itemCount: windowContainerStatus.applicationTasks.length,
       itemBuilder: (_, index) {
-        MapEntry<String, List<WindowConfigureData>> group =
-            windowContainerStatus.groupList[index];
-        bool focused = group.value.indexWhere(
-                (window) => window == windowContainerStatus.topWindow) !=
-            -1;
+        WindowApplicationData application =
+            windowContainerStatus.applicationTasks.values.toList()[index];
+        bool focused =
+            windowContainerStatus.topWindow?.group == application.taskId;
         return Padding(
           padding: const EdgeInsets.all(4.0),
-          child: InkWell(
-            onTap: () {
-              group.value.first.minimize();
+          child: PopupMenuButton<WindowConfigureData>(
+            onSelected: (WindowConfigureData window) {
+              window.minimize();
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                for (WindowConfigureData window
+                    in windowContainerStatus.groups[application.taskId] ?? [])
+                  PopupMenuItem<WindowConfigureData>(
+                    value: window,
+                    child: Text(window.title),
+                  ),
+              ];
             },
             child: Container(
               height: double.infinity,
@@ -80,7 +90,7 @@ class __TaskBarWindowListState extends State<_TaskBarWindowList> {
               decoration: BoxDecoration(
                 color: focused ? Colors.white60 : Colors.black26,
               ),
-              child: Text(group.value.first.title),
+              child: Text(application.applicationName),
             ),
           ),
         );

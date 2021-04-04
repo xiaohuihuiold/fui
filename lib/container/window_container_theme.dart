@@ -3,8 +3,17 @@ import 'package:flutter/material.dart';
 /// TODO: 主题完善
 /// 容器主题
 class WindowContainerThemeData {
+  /// 对比度
+  final Brightness brightness;
+
   /// 窗口背景色
   final Color backgroundColor;
+
+  /// 阴影颜色
+  final Color shadowColor;
+
+  /// 文本颜色
+  final Color textColor;
 
   factory WindowContainerThemeData.light() {
     return WindowContainerThemeData();
@@ -12,19 +21,31 @@ class WindowContainerThemeData {
 
   factory WindowContainerThemeData.dark() {
     return WindowContainerThemeData(
-      backgroundColor: Colors.grey[700]!,
+      brightness: Brightness.dark,
+      backgroundColor: Colors.grey[850]!,
+      shadowColor: Colors.grey,
+      textColor: Colors.white,
     );
   }
 
   const WindowContainerThemeData({
+    this.brightness = Brightness.light,
     this.backgroundColor = Colors.white,
+    this.shadowColor = Colors.grey,
+    this.textColor = Colors.black,
   });
 
   WindowContainerThemeData copyWith({
+    Brightness? brightness,
     Color? backgroundColor,
+    Color? shadowColor,
+    Color? textColor,
   }) {
     return WindowContainerThemeData(
+      brightness: brightness ?? this.brightness,
       backgroundColor: backgroundColor ?? this.backgroundColor,
+      shadowColor: shadowColor ?? this.shadowColor,
+      textColor: textColor ?? this.textColor,
     );
   }
 }

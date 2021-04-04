@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:fui/container/window_container_theme.dart';
 
 import '../../provider/theme_provider.dart';
 import '../window_container.dart';
@@ -14,7 +15,7 @@ class DesktopWindow extends StatefulWidget {
 
 class _DesktopWindowState extends State<DesktopWindow> {
   void _openAWindow() {
-    ThemeProvider.read(context).isDark=true;
+    ThemeProvider.read(context).isDark = true;
     WindowContainer.of(context).open(
       WindowConfigureData(
         title: 'A Window',
@@ -71,27 +72,7 @@ class _DesktopWindowState extends State<DesktopWindow> {
       fit: StackFit.passthrough,
       children: [
         // _DesktopWindowBackground(),
-        Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton(
-                child: Text('AWindow'),
-                onPressed: _openAWindow,
-              ),
-              SizedBox(height: 12.0),
-              ElevatedButton(
-                child: Text('BWindow'),
-                onPressed: _openBWindow,
-              ),
-              SizedBox(height: 12.0),
-              ElevatedButton(
-                child: Text('CWindow'),
-                onPressed: _openCWindow,
-              ),
-            ],
-          ),
-        ),
+        _DesktopWindowApplications(),
       ],
     );
   }
@@ -220,4 +201,52 @@ class _CirclePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+/// 应用列表
+class _DesktopWindowApplications extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    WindowContainerStatus status = WindowContainerStatus.of(context);
+    WindowContainerThemeData theme = WindowContainerTheme.of(context);
+    return GridView.builder(
+      itemCount: status.applications.length,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate:
+          SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 10),
+      itemBuilder: (_, index) {
+        WindowApplicationManifest application = status.applications[index];
+        return InkWell(
+          onDoubleTap: () {
+            WindowContainer.of(context)
+                .openApplication(application.applicationId);
+          },
+          child: Container(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: FlutterLogo(),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      application.applicationName,
+                      style: TextStyle(
+                        color: theme.textColor,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }

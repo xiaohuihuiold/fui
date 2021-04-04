@@ -12,10 +12,15 @@ import 'window_container_theme.dart';
 
 part 'window_configuration.dart';
 
+part 'window_application.dart';
+
 /// 窗口容器对外接口
 abstract class WindowContainerController {
   /// 请求窗口焦点
   void focus(WindowConfigureData window);
+
+  /// 打开新的应用
+  Future<T?> openApplication<T>(String applicationId);
 
   /// 打开新的窗口
   Future<T?> open<T>(WindowConfigureData window);
@@ -29,9 +34,13 @@ class WindowContainer extends StatefulWidget {
   /// 容器主题
   final WindowContainerThemeData theme;
 
+  /// 应用
+  final List<WindowApplicationManifest> applications;
+
   const WindowContainer({
     Key? key,
     this.theme = const WindowContainerThemeData(),
+    this.applications = const [],
   }) : super(key: key);
 
   @override
@@ -69,11 +78,25 @@ class WindowContainer extends StatefulWidget {
 
 class WindowContainerState extends State<WindowContainer>
     implements WindowContainerController {
+  /// 窗口应用
+  final Map<String, WindowApplicationManifest> _applications = {};
+
+  /// 打开的应用
+  final Map<String, WindowApplicationData> _applicationTasks = {};
+
   /// 所有显示窗口
   final List<WindowConfigureData> _windows = [];
 
   /// 窗口分组
   final Map<String, List<WindowConfigureData>> _windowGroups = {};
+
+  /// 初始化应用
+  void _initApplications() {
+    _applications.clear();
+    widget.applications.forEach((application) {
+      _applications[application.applicationId] = application;
+    });
+  }
 
   /// 创建桌面组件
   WindowConfigureData _createDesktop() {
@@ -128,6 +151,23 @@ class WindowContainerState extends State<WindowContainer>
     setState(() {});
   }
 
+  /// 打开新的应用
+  @override
+  Future<T?> openApplication<T>(String applicationId) {
+    WindowApplicationManifest? manifest = _applications[applicationId];
+    if (manifest == null) {
+      return Future<T>.value(null);
+    }
+    WindowApplicationData applicationData = manifest.builder();
+    applicationData.taskId = Uuid().v4();
+    applicationData.showInDesktop = manifest.showInDesktop;
+    applicationData.applicationId = manifest.applicationId;
+    applicationData.applicationName = manifest.applicationName;
+    applicationData._state = this;
+    _applicationTasks[applicationData.taskId] = applicationData;
+    return applicationData.open('main');
+  }
+
   /// 打开新窗口并添加到顶层
   @override
   Future<T?> open<T>(WindowConfigureData window) {
@@ -178,6 +218,8 @@ class WindowContainerState extends State<WindowContainer>
     _windowGroups[window.group]?.remove(window);
     if (_windowGroups[window.group]?.isEmpty == true) {
       _windowGroups.remove(window.group);
+      // 移除应用
+      _applicationTasks.remove(window.group);
     }
     // 移除窗口
     _windows.remove(window);
@@ -193,24 +235,32 @@ class WindowContainerState extends State<WindowContainer>
 
   /// 根据窗口配置生成widget
   List<Widget> _extractChildren() {
-    return [
-      for (WindowConfigureData window in _windows)
-        _WindowOverlay(
-          key: window._key,
+    return _windows.map<Widget>((window) {
+      Widget result = _WindowOverlay(
+        key: window._key,
+        window: window,
+        child: WindowConfiguration(
           window: window,
-          child: WindowConfiguration(
-            window: window,
-            child: _WindowDecorated(
-              onFocused: (window) => focus(window),
-            ),
+          child: _WindowDecorated(
+            onFocused: (window) => focus(window),
           ),
         ),
-    ];
+      );
+      if (_applicationTasks[window.group] != null) {
+        result = WindowApplication(
+          application: _applicationTasks[window.group]!,
+          child: result,
+        );
+      }
+      return result;
+    }).toList();
   }
 
   @override
   void initState() {
     super.initState();
+    // 初始化应用
+    _initApplications();
     // 添加桌面
     open(_createDesktop());
     // 添加任务栏
@@ -218,15 +268,33 @@ class WindowContainerState extends State<WindowContainer>
   }
 
   @override
+  void didUpdateWidget(covariant WindowContainer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.applications != oldWidget.applications) {
+      _initApplications();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return WindowContainerTheme(
       theme: widget.theme,
-      child: WindowContainerStatus(
-        windows: _windows,
-        groups: _windowGroups,
-        child: _WindowStack(
+      child: Theme(
+        data: ThemeData(
+          brightness: widget.theme.brightness,
+          backgroundColor: widget.theme.backgroundColor,
+          scaffoldBackgroundColor: widget.theme.backgroundColor,
+          shadowColor: widget.theme.shadowColor,
+        ),
+        child: WindowContainerStatus(
+          applications: widget.applications,
+          applicationTasks: _applicationTasks,
           windows: _windows,
-          children: _extractChildren(),
+          groups: _windowGroups,
+          child: _WindowStack(
+            windows: _windows,
+            children: _extractChildren(),
+          ),
         ),
       ),
     );
@@ -239,6 +307,16 @@ class WindowContainerStatus extends InheritedWidget {
   final WindowConfigureData? _topWindow;
 
   WindowConfigureData? get topWindow => _topWindow;
+
+  /// 应用
+  final List<WindowApplicationManifest> _applications;
+
+  List<WindowApplicationManifest> get applications => _applications;
+
+  /// 打开的应用
+  final Map<String, WindowApplicationData> _applicationTasks;
+
+  Map<String, WindowApplicationData> get applicationTasks => _applicationTasks;
 
   /// 所有显示窗口
   final List<WindowConfigureData> _windows;
@@ -253,10 +331,15 @@ class WindowContainerStatus extends InheritedWidget {
 
   WindowContainerStatus({
     Key? key,
+    required List<WindowApplicationManifest> applications,
+    required Map<String, WindowApplicationData> applicationTasks,
     required List<WindowConfigureData> windows,
     required Map<String, List<WindowConfigureData>> groups,
     required Widget child,
-  })   : _windows = List<WindowConfigureData>.from(windows),
+  })   : _applications = List<WindowApplicationManifest>.from(applications),
+        _applicationTasks =
+            Map<String, WindowApplicationData>.from(applicationTasks),
+        _windows = List<WindowConfigureData>.from(windows),
         _topWindow = _findTopWindow(windows),
         _groups = Map<String, List<WindowConfigureData>>.from(groups),
         groupList = groups.entries.toList(),
@@ -482,7 +565,9 @@ class _WindowOverlay extends SingleChildRenderObjectWidget {
 
   @override
   RenderObject createRenderObject(BuildContext context) {
-    return _RenderWindowOverlay(window: window);
+    return _RenderWindowOverlay(
+      window: window,
+    );
   }
 
   @override
@@ -652,13 +737,16 @@ class _WindowStack extends MultiChildRenderObjectWidget {
   RenderObject createRenderObject(BuildContext context) {
     return _RenderWindowStack(
       windows: windows,
+      themeData: WindowContainerTheme.of(context),
     );
   }
 
   @override
   void updateRenderObject(
       BuildContext context, covariant _RenderWindowStack renderObject) {
-    renderObject..windows = windows;
+    renderObject
+      ..windows = windows
+      ..themeData = WindowContainerTheme.of(context);
   }
 }
 
@@ -685,9 +773,21 @@ class _RenderWindowStack extends RenderBox
     }
   }
 
+  /// 主题
+  WindowContainerThemeData _themeData;
+
+  set themeData(WindowContainerThemeData value) {
+    if (_themeData != value) {
+      _themeData = value;
+      markNeedsPaint();
+    }
+  }
+
   _RenderWindowStack({
     required List<WindowConfigureData> windows,
-  }) : _windows = windows;
+    required WindowContainerThemeData themeData,
+  })   : _windows = windows,
+        _themeData = themeData;
 
   /// 检查是否改变数组对象
   bool _isWindowsChanged(List<WindowConfigureData> oldWindows,
@@ -767,6 +867,9 @@ class _RenderWindowStack extends RenderBox
 
   @override
   void paint(PaintingContext context, Offset offset) {
+    // 绘制背景
+    Canvas canvas = context.canvas;
+    canvas.drawColor(_themeData.backgroundColor, BlendMode.src);
     defaultPaint(context, offset);
   }
 

@@ -5,6 +5,9 @@ import 'provider/theme_provider.dart';
 import 'provider/screen_provider.dart';
 import 'container/window_container.dart';
 
+import 'application/note/note_application.dart';
+import 'application/setting/setting_application.dart';
+
 void main() {
   runApp(
     MultiProvider(
@@ -23,6 +26,11 @@ class FlutterUi extends StatefulWidget {
 }
 
 class _FlutterUiState extends State<FlutterUi> {
+  List<WindowApplicationManifest> _applications = [
+    settingApplication,
+    noteApplication,
+  ];
+
   @override
   Widget build(BuildContext context) {
     ThemeProvider themeProvider = ThemeProvider.watch(context);
@@ -32,6 +40,7 @@ class _FlutterUiState extends State<FlutterUi> {
       home: Scaffold(
         body: WindowContainer(
           theme: themeProvider.theme,
+          applications: _applications,
         ),
       ),
     );

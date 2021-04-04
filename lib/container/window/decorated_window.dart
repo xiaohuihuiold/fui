@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fui/container/window_container_theme.dart';
 
 import '../window_container.dart';
 
@@ -15,6 +16,7 @@ class DecoratedWindow extends StatelessWidget {
     WindowContainerStatus windowContainer,
     Widget result,
   ) {
+    WindowContainerThemeData theme = WindowContainerTheme.of(context);
     // 边距
     result = Padding(
       padding: EdgeInsets.only(left: 2.0, top: 2.0, right: 2.0, bottom: 2.0),
@@ -46,14 +48,13 @@ class DecoratedWindow extends StatelessWidget {
     result = Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .scaffoldBackgroundColor
+        color: theme.backgroundColor
             .withOpacity(windowContainer.topWindow == window ? 0.8 : 0.4),
         borderRadius: BorderRadius.circular(4.0),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).shadowColor.withOpacity(0.4),
-            blurRadius: 4.0,
+            color: theme.shadowColor.withOpacity(0.4),
+            blurRadius: 2.0,
           ),
         ],
       ),
@@ -79,6 +80,7 @@ class DecoratedWindowTitleBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     WindowConfigureData window = WindowConfiguration.of(context);
+    WindowContainerThemeData theme = WindowContainerTheme.of(context);
     return Container(
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(vertical: 2.0),
@@ -97,6 +99,9 @@ class DecoratedWindowTitleBar extends StatelessWidget {
                     maxLines: 1,
                     softWrap: false,
                     overflow: TextOverflow.fade,
+                    style: TextStyle(
+                      color: theme.textColor,
+                    ),
                   ),
                 ),
               ),
@@ -111,6 +116,7 @@ class DecoratedWindowTitleBar extends StatelessWidget {
                   child: Icon(
                     Icons.remove,
                     size: 16.0,
+                    color: theme.textColor,
                   ),
                 ),
               ),
@@ -126,6 +132,7 @@ class DecoratedWindowTitleBar extends StatelessWidget {
                         ? Icons.web_asset
                         : Icons.web,
                     size: 16.0,
+                    color: theme.textColor,
                   ),
                 ),
               ),
@@ -138,6 +145,7 @@ class DecoratedWindowTitleBar extends StatelessWidget {
                 child: Icon(
                   Icons.close,
                   size: 16.0,
+                  color: theme.textColor,
                 ),
               ),
             ),
