@@ -17,14 +17,13 @@ class DecoratedWindow extends StatelessWidget {
     Widget result,
   ) {
     WindowContainerThemeData theme = WindowContainerTheme.of(context);
+    bool isTop = windowContainer.topWindow == window;
     // 边距
-    result = Padding(
-      padding: EdgeInsets.only(left: 2.0, top: 2.0, right: 2.0, bottom: 2.0),
-      child: result,
-    );
     result = Container(
       width: double.infinity,
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: theme.backgroundColor,
+      padding:
+          const EdgeInsets.only(left: 2.0, top: 2.0, right: 2.0, bottom: 2.0),
       child: result,
     );
     // 标题栏
@@ -48,13 +47,12 @@ class DecoratedWindow extends StatelessWidget {
     result = Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: theme.backgroundColor
-            .withOpacity(windowContainer.topWindow == window ? 0.8 : 0.4),
+        color: theme.backgroundColor.withOpacity(isTop ? 0.8 : 0.4),
         borderRadius: BorderRadius.circular(4.0),
         boxShadow: [
           BoxShadow(
-            color: theme.shadowColor.withOpacity(0.4),
-            blurRadius: 2.0,
+            color: theme.shadowColor.withOpacity(0.8),
+            blurRadius: isTop ? 4.0 : 1.0,
           ),
         ],
       ),
@@ -69,6 +67,7 @@ class DecoratedWindow extends StatelessWidget {
     WindowContainerStatus windowContainer = WindowContainerStatus.of(context);
     Widget result = window.builder(context);
     if (window.hasDecoration) {
+      // 允许装饰
       result = _wrapDecoration(context, window, windowContainer, result);
     }
     return result;
@@ -81,6 +80,22 @@ class DecoratedWindowTitleBar extends StatelessWidget {
   Widget build(BuildContext context) {
     WindowConfigureData window = WindowConfiguration.of(context);
     WindowContainerThemeData theme = WindowContainerTheme.of(context);
+    // 标题
+    Widget title = Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        alignment: Alignment.centerLeft,
+        child: Text(
+          window.title,
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.fade,
+          style: TextStyle(
+            color: theme.textColor,
+          ),
+        ),
+      ),
+    );
     return Container(
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(vertical: 2.0),
@@ -89,23 +104,7 @@ class DecoratedWindowTitleBar extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    window.title,
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.fade,
-                    style: TextStyle(
-                      color: theme.textColor,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            title,
             if (window.hasMinimize)
               InkWell(
                 onTap: () {

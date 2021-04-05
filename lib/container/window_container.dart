@@ -276,13 +276,26 @@ class WindowContainerState extends State<WindowContainer>
   void didUpdateWidget(covariant WindowContainer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.applications != oldWidget.applications) {
+      // 重新初始化应用
       _initApplications();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return WindowContainerTheme(
+    // 设置容器
+    Widget result = WindowContainerStatus(
+      applications: widget.applications,
+      applicationTasks: _applicationTasks,
+      windows: _windows,
+      groups: _windowGroups,
+      child: _WindowStack(
+        windows: _windows,
+        children: _extractChildren(),
+      ),
+    );
+    // 设置主题
+    result = WindowContainerTheme(
       theme: widget.theme,
       child: Theme(
         data: ThemeData(
@@ -292,18 +305,10 @@ class WindowContainerState extends State<WindowContainer>
           scaffoldBackgroundColor: widget.theme.backgroundColor,
           shadowColor: widget.theme.shadowColor,
         ),
-        child: WindowContainerStatus(
-          applications: widget.applications,
-          applicationTasks: _applicationTasks,
-          windows: _windows,
-          groups: _windowGroups,
-          child: _WindowStack(
-            windows: _windows,
-            children: _extractChildren(),
-          ),
-        ),
+        child: result,
       ),
     );
+    return result;
   }
 }
 
