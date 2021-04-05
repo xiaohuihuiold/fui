@@ -286,6 +286,7 @@ class WindowContainerState extends State<WindowContainer>
       theme: widget.theme,
       child: Theme(
         data: ThemeData(
+          fontFamily: widget.theme.fontFamily,
           brightness: widget.theme.brightness,
           backgroundColor: widget.theme.backgroundColor,
           scaffoldBackgroundColor: widget.theme.backgroundColor,

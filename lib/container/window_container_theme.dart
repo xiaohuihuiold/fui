@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 /// TODO: 主题完善
 /// 容器主题
 class WindowContainerThemeData {
+  final String fontFamily;
+
   /// 对比度
   final Brightness brightness;
 
@@ -29,6 +31,7 @@ class WindowContainerThemeData {
   }
 
   const WindowContainerThemeData({
+    this.fontFamily = 'PuHuiTi',
     this.brightness = Brightness.light,
     this.backgroundColor = Colors.white,
     this.shadowColor = Colors.grey,
@@ -36,12 +39,14 @@ class WindowContainerThemeData {
   });
 
   WindowContainerThemeData copyWith({
+    String? fontFamily,
     Brightness? brightness,
     Color? backgroundColor,
     Color? shadowColor,
     Color? textColor,
   }) {
     return WindowContainerThemeData(
+      fontFamily: fontFamily ?? this.fontFamily,
       brightness: brightness ?? this.brightness,
       backgroundColor: backgroundColor ?? this.backgroundColor,
       shadowColor: shadowColor ?? this.shadowColor,
