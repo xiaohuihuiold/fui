@@ -42,7 +42,7 @@ class HttpClient {
     }
     if (responseText != null) {
       try {
-        switch (httpRequest.getResponseHeader('content-type')) {
+        switch (httpRequest.getResponseHeader('content-type')?.split(';').first) {
           case 'application/json':
             data = json.decode(responseText);
             break;

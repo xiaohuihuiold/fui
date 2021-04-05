@@ -14,7 +14,7 @@ class _MainWindowState extends State<MainWindow> {
     return Column(
       children: [
         CheckboxListTile(
-          tristate: false,
+          tristate: true,
           value: themeProvider.isDark,
           title: Text('暗黑模式'),
           subtitle: Text(() {

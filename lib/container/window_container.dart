@@ -474,7 +474,6 @@ class __WindowDecoratedState extends State<_WindowDecorated>
   @override
   void initState() {
     super.initState();
-    print('init');
     _initAnimation(true);
   }
 
