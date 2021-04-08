@@ -1,11 +1,13 @@
 import '../entity/entity_factory.dart';
 import '../ext/map_ext.dart';
 import 'post_entity.dart';
+import 'link_entity.dart';
 
 class ManifestEntity {
   int version;
   int createTime;
   int lastUpdateTime;
+  List<LinkEntity> links;
   List<PostEntity> posts;
 
   Map<int, PostEntity> _postIdMap = {};
@@ -27,6 +29,7 @@ class ManifestEntity {
     required this.version,
     required this.createTime,
     required this.lastUpdateTime,
+    required this.links,
     required this.posts,
   }) {
     posts.sort((a, b) {
@@ -65,6 +68,9 @@ class ManifestEntity {
       version: json.getInt('version'),
       createTime: json.getInt('create_time'),
       lastUpdateTime: json.getInt('last_update_time'),
+      links: json.getArray('links').map<LinkEntity>((e) {
+        return EntityFactory.create<LinkEntity>(e)!;
+      }).toList(),
       posts: json.getArray('posts').map<PostEntity>((e) {
         return EntityFactory.create<PostEntity>(e)!;
       }).toList(),

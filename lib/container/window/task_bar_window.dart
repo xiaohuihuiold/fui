@@ -97,14 +97,16 @@ class __TaskBarWindowListState extends State<_TaskBarWindowList> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  if (application.icon != null ||
-                      application.iconUrl != null) ...[
+                  if (application.icon != null)
                     Icon(
                       application.icon,
                       color: Colors.blue,
-                    ),
-                    SizedBox(width: 4.0),
-                  ],
+                    )
+                  else if (application.iconUrl != null)
+                    Image.network(application.iconUrl!)
+                  else
+                    FlutterLogo(),
+                  SizedBox(width: 4.0),
                   Text(application.applicationName),
                 ],
               ),

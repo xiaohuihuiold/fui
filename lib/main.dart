@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import 'provider/theme_provider.dart';
-import 'provider/screen_provider.dart';
-import 'container/window_container.dart';
 
+import 'provider/screen_provider.dart';
+import 'provider/manifest_provider.dart';
+import 'container/window_container.dart';
 import 'application/note/note_application.dart';
+
 import 'application/setting/setting_application.dart';
 import 'application/post/post_application.dart';
+import 'application/link/link_application.dart';
 
 void main() {
   runApp(
@@ -15,6 +17,7 @@ void main() {
       providers: [
         ChangeNotifierProvider.value(value: ThemeProvider()),
         Provider.value(value: ScreenProvider()),
+        ChangeNotifierProvider.value(value: ManifestProvider()),
       ],
       child: FlutterUi(),
     ),
@@ -31,6 +34,7 @@ class _FlutterUiState extends State<FlutterUi> {
     settingApplication,
     noteApplication,
     postApplication,
+    linkApplication,
   ];
 
   @override
